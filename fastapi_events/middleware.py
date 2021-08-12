@@ -1,23 +1,24 @@
-from starlette.background import BackgroundTasks
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.requests import Request
-from starlette.responses import Response
+from collections import deque
+from contextvars import Token
 
-from fastapi_events.dispatcher import dispatch
-from fastapi_events.handler import handle
+from starlette.types import ASGIApp, Scope, Receive, Send
+
+from fastapi_events import event_store
+from fastapi_events.handler import handle_events
 
 
-class EventHandlerMiddleware(BaseHTTPMiddleware):
-    async def dispatch(
-        self, request: Request, call_next: RequestResponseEndpoint
-    ) -> Response:
-        request.state.dispatch = dispatch
+class EventHandlerMiddleware:
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
 
-        response = await call_next(request)
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] not in ["http", "websocket"]:
+            await self.app(scope, receive, send)
+            return
 
-        if not response.background:
-            response.background = BackgroundTasks()
-
-        response.background.add_task(handle)
-
-        return response
+        token: Token = event_store.set(deque())
+        try:
+            await self.app(scope, receive, send)
+        finally:
+            handle_events()
+            event_store.reset(token)
