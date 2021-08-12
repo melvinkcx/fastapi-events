@@ -29,9 +29,14 @@ class EventHandlerASGIMiddleware:
 
     async def _process_events(self) -> None:
         q: Deque[Event] = event_store.get()
-        for event in q:
-            for handler in self._handlers:
-                await handler.handle(event)
+
+        for handler in self._handlers:
+            if hasattr(handler, "handle_many") and callable(handler.handle_many):
+                await handler.handle_many(q)
+
+            else:
+                for event in q:
+                    await handler.handle(event)
 
     def _initialize_event_store(self) -> None:
         self._token = event_store.set(deque())
