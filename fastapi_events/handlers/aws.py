@@ -22,4 +22,5 @@ class SQSForwardHandler(BaseEventHandler):
                                   MessageBody=self.format_message(event=event))
 
     def format_message(self, event: Event) -> str:
+        # TODO
         pass

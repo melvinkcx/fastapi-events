@@ -1,38 +1,94 @@
 # fastapi-events
 
+Event dispatching library for FastAPI, and Starlette.
+
+Features:
+
+* straightforward API to emit events in controllers
+* handling of events will be done after responses are sent (doesn't affect response time)
+* built-in and customizable event handlers; accept multiple handlers
+
 ## Installation
 
-```python
-from fastapi import FastAPI
-from fastapi_events.middleware import EventHandlerMiddleware
-
-app = FastAPI()
-app.add_middleware(EventHandlerMiddleware)
+```shell
+pip install fastapi-events
 ```
 
-# dev notes
+before using an AWS handler, install:
 
-- use a registry system
-    - register events
-    - register handler
-- event structure?
-    - ?
-- how to store events?
-- to run handlers in the background:
-    1. Use BackgroundTask(s)
-    - Updates:
-        - giving up using it, Middleware and BackgroundTasks dont work well together:
-            - https://github.com/encode/starlette/issues/919
-    - use a middleware (BaseHTTPMiddleware) to inject a function to `request.state` serve as a dispatcher/emitter
-        - the middleware should inject/add a BackgroundTask (`response.background.add_task()`) to invoke the handlers
-    - BaseHTTPMiddleware should NOT be used with StreamingResponse and FileResponse:
-        -> Memory issues: https://github.com/encode/starlette/issues/1012#issuecomment-673461832
-        -> https://github.com/encode/starlette/issues/919#issuecomment-672908610
-    - Ref:
-        - https://fastapi.tiangolo.com/tutorial/background-tasks/#dependency-injection
-        - https://spectrum.chat/ariadne/general/how-to-use-background-tasks-with-starlette~74d56970-5676-4484-8586-a9384e5f4d56?m=MTU5MDc4NjIwMDMxOA==
-        - https://github.com/austincollinpena/Starlette-Ariadne-Gino-Starter/blob/master/backend/main.py
+```shell
+pip install fastapi-events[aws]
+```
+
+# Usage
+
+`fastapi-events` despite its name, supports both FastAPI and Starlette.
+
+* Configuring `fastapi-events` for FastAPI:
+    ```python
+    from fastapi import FastAPI
+    from fastapi.requests import Request
+    from fastapi.responses import JSONResponse
+  
+    from fastapi_events.dispatcher import dispatch
+    from fastapi_events.middleware import EventHandlerASGIMiddleware
+    from fastapi_events.handlers.echo import EchoHandler
     
-    2. Use ASGIMiddleware:
-    - Ref:
-        - https://github.com/tomwojcik/starlette-context/blob/master/starlette_context/middleware/raw_middleware.py
+    app = FastAPI()
+    app.add_middleware(EventHandlerASGIMiddleware, handlers=[EchoHandler()])
+    
+    
+    @app.get("/")
+    def index(request: Request) -> JSONResponse:
+        dispatch("my-fancy-event", payload={"id": 1})  # Emitting event in controllers
+        return JSONResponse()    
+    ```
+
+* Configuring `fastapi-events` for Starlette:
+
+  ```python
+  from starlette.applications import Starlette
+  from starlette.middleware import Middleware
+  from starlette.requests import Request
+  from starlette.responses import JSONResponse
+  
+  from fastapi_events.dispatcher import dispatch
+  from fastapi_events.handlers.echo import EchoHandler
+  from fastapi_events.middleware import EventHandlerASGIMiddleware
+  
+  app = Starlette(middleware=[
+      Middleware(EventHandlerASGIMiddleware,
+                 handlers=[EchoHandler()])
+  ])
+  
+  @app.route("/")
+  async def root(request: Request) -> JSONResponse:
+      dispatch("new event", payload={"id": 1})
+      return JSONResponse()
+  ```
+
+## Dispatching events
+
+```python
+from fastapi_events.dispatcher import dispatch
+
+dispatch(
+    "event-name",  # Event name, accepts any valid string
+    payload={}  # Event payload, accepts any arbitrary data
+)
+```
+
+# Built-in handlers
+
+Here is a list of built-in event handlers
+
+- `EchoHandler`: forward events to stdout (with `pprint`)
+- `SQSForwardHandler`: forwards events to an AWS SQS queue
+
+# Creating your own handler
+
+TODO
+
+# Design and Technical Details
+
+TODO

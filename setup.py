@@ -48,6 +48,9 @@ setuptools.setup(
             "requests",
             "pytest>=6.2.4",
             "pytest-mock>=3.6.1"
+        ],
+        "aws": [
+            "boto3>=1.14"
         ]
     }
 )
