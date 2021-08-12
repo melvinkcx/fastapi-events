@@ -1,3 +1,4 @@
+import asyncio
 from collections import deque
 from contextvars import Token
 from typing import Optional, Deque, Iterable
@@ -30,13 +31,13 @@ class EventHandlerASGIMiddleware:
     async def _process_events(self) -> None:
         q: Deque[Event] = event_store.get()
 
-        for handler in self._handlers:
+        async def execute(handler):
             if hasattr(handler, "handle_many") and callable(handler.handle_many):
                 await handler.handle_many(q)
-
             else:
-                for event in q:
-                    await handler.handle(event)
+                await asyncio.gather(*[handler.handle(event) for event in q])
+
+        await asyncio.gather(*[execute(handler) for handler in self._handlers])
 
     def _initialize_event_store(self) -> None:
         self._token = event_store.set(deque())
