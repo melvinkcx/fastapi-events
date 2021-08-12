@@ -30,14 +30,8 @@ class EventHandlerASGIMiddleware:
 
     async def _process_events(self) -> None:
         q: Deque[Event] = event_store.get()
-
-        async def execute(handler):
-            if hasattr(handler, "handle_many") and callable(handler.handle_many):
-                await handler.handle_many(q)
-            else:
-                await asyncio.gather(*[handler.handle(event) for event in q])
-
-        await asyncio.gather(*[execute(handler) for handler in self._handlers])
+        await asyncio.gather(*[handler.handle_many(events=q)
+                               for handler in self._handlers])
 
     def _initialize_event_store(self) -> None:
         self._token = event_store.set(deque())

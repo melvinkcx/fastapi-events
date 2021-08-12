@@ -34,14 +34,14 @@ class SQSForwardHandler(BaseEventHandler):
 
     async def handle_many(self, events: Iterable[Event]) -> None:
         for batch in chunk(events, self._max_batch_size):
+            messages = [{"Id": self.generate_id(event),
+                         "MessageBody": self.format_message(event=event)}
+                        for event in batch]
             self._client.send_message_batch(QueueUrl=self._queue_url,
-                                            Entries=[{"Id": self.generate_id(event),
-                                                      "MessageBody": self.format_message(event=event)}
-                                                     for event in batch])
+                                            Entries=messages)
 
     async def handle(self, event: Event) -> None:
         self._client.send_message(QueueUrl=self._queue_url,
-                                  DelaySeconds=0,
                                   MessageBody=self.format_message(event=event))
 
     def format_message(self, event: Event) -> str:
