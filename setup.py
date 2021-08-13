@@ -47,7 +47,9 @@ setuptools.setup(
         "test": [
             "requests",
             "pytest>=6.2.4",
-            "pytest-mock>=3.6.1"
+            "pytest-mock>=3.6.1",
+            "pytest-env>=0.6.2",
+            "moto[aws]>=2.2"
         ],
         "aws": [
             "boto3>=1.14"
