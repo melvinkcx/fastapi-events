@@ -21,6 +21,10 @@ class DummyHandler(BaseEventHandler):
 
 @pytest.mark.parametrize("return_error", [True, False])
 def test_event_handling(return_error):
+    """
+    Making sure events are handled regardless of response status
+    This is unlike how BackgroundTask works.
+    """
     dummy_handler_1 = DummyHandler()
     dummy_handler_2 = DummyHandler()
 
