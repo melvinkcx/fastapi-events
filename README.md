@@ -1,15 +1,16 @@
 # fastapi-events
 
-[![.github/workflows/tests.yml](https://github.com/melvinkcx/fastapi-events/actions/workflows/tests.yml/badge.svg?branch=dev&event=push)](https://github.com/melvinkcx/fastapi-events/actions/workflows/tests.yml)
-
 An event dispatching/handling library for FastAPI, and Starlette.
+
+[![](https://github.com/melvinkcx/fastapi-events/actions/workflows/tests.yml/badge.svg?branch=dev&event=push)](https://github.com/melvinkcx/fastapi-events/actions/workflows/tests.yml)
 
 Features:
 
-* straightforward and simple API to emit events anywhere in your code
-* handling of events will be done after responses are returned (doesn't affect response time)
-* powerful built-in event handlers to enable customizations
-* async functions are first-class citizen
+* straightforward API to emit events anywhere in your code
+* events are handled after responses are returned (doesn't affect response time)
+* powerful built-in handlers to handle events both locally and remotely
+* coroutine functions (`async def`) are the first-class citizen
+* write your handlers, never be limited to just what `fastapi_events` provides
 
 ## Installation
 
@@ -94,7 +95,7 @@ dispatch("a_cat_is_spotted")  # This works too!
 ### Handle events locally
 
 The flexibility of `fastapi-events` allows us to customise how the events should be handled. 
-For starter, you might want to handle your events locally.
+For starters, you might want to handle your events locally.
 
 ```python
 # ex: in handlers.py
@@ -128,9 +129,9 @@ async def handle_all_events(event: Event):
 
 ### Handling events remotely
 
-For larger projects, you might have services dedicated to handle events separately.
+For larger projects, you might have services dedicated to handling events separately.
 
-For instance, `fastapi-events` comes with AWS SQS forwarder to can forward the events to a remote queue.
+For instance, `fastapi-events` comes with AWS SQS forwarder to forward the events to a remote queue.
 
 1. Register `SQSForwardHandler` as handlers:
     ```python
@@ -140,7 +141,7 @@ For instance, `fastapi-events` comes with AWS SQS forwarder to can forward the e
                                                    region_name="eu-central-1")])   # registering handler(s)
     ```
    
-2. Start dispatching events! Events will be serialised in JSON by default:
+2. Start dispatching events! Events will be serialised into JSON format by default:
     ```python
     ["event name", {"payload": "here is the payload"}]
     ```
@@ -151,27 +152,28 @@ Here is a list of built-in event handlers:
 
 * `LocalHandler` / `local_handler`:
   * import from `fastapi_events.handlers.local`
-  * for handle events locally. See examples above
+  * for handling events locally. See examples [above](#handle-events-locally)
   * event name pattern matching is done using Unix shell-style matching (`fnmatch`)
   
 * `SQSForwardHandler`: 
   * import from `fastapi_events.handlers.aws`
-  * forwards events to an AWS SQS queue
+  * to forward events to an AWS SQS queue
   
 * `EchoHandler`: 
-  * forward events to stdout with `pprint`. Great for debugging purpose
+  * import from `fastapi_events.handlers.echo`
+  * to forward events to stdout with `pprint`. Great for debugging purpose
 
 # Creating your own handler
 
-Creating your own handler is nothing more than inheriting from the `BaseEventHandler` in `fastapi_events.handlers.base`.
+Creating your own handler is nothing more than inheriting from the `BaseEventHandler` class in `fastapi_events.handlers.base`.
 
 To handle events, `fastapi_events` calls one of these methods, in the following priority order:
 
 1. `handle_many(events)`: 
-    The coroutine function should expect the backlog of events collected.
+    The coroutine function should expect the backlog of the events collected.
    
 2. `handle(event)`: 
-    In cases where `handle_many()` wasn't defined in your custom handler, `handle()`
+    In cases where `handle_many()` weren't defined in your custom handler, `handle()`
     will be called by iterating through the events in the backlog.
 
 ```python
