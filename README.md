@@ -1,5 +1,7 @@
 # fastapi-events
 
+[![.github/workflows/tests.yml](https://github.com/melvinkcx/fastapi-events/actions/workflows/tests.yml/badge.svg?branch=dev&event=push)](https://github.com/melvinkcx/fastapi-events/actions/workflows/tests.yml)
+
 An event dispatching/handling library for FastAPI, and Starlette.
 
 Features:
