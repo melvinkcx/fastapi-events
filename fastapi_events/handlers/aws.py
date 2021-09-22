@@ -34,7 +34,7 @@ class SQSForwardHandler(BaseEventHandler):
     ):
         for fn in (serializer, id_generator):
             if fn is not None and not callable(fn):
-                raise ConfigurationError(f"serializer and id_generator must be of type Callable")
+                raise ConfigurationError("serializer and id_generator must be of type Callable")
 
         self._queue_url = queue_url
         self._region_name = region_name

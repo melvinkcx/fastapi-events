@@ -1,12 +1,13 @@
 # fastapi-events
 
-Event dispatching library for FastAPI, and Starlette.
+An event dispatching/handling library for FastAPI, and Starlette.
 
 Features:
 
-* straightforward API to emit events in controllers
-* handling of events will be done after responses are sent (doesn't affect response time)
-* built-in and customizable event handlers; accept multiple handlers
+* straightforward and simple API to emit events anywhere in your code
+* handling of events will be done after responses are returned (doesn't affect response time)
+* powerful built-in event handlers to enable customizations
+* async functions are first-class citizen
 
 ## Installation
 
@@ -14,7 +15,7 @@ Features:
 pip install fastapi-events
 ```
 
-before using an AWS handler, install:
+To use it with AWS handlers, install:
 
 ```shell
 pip install fastapi-events[aws]
@@ -22,7 +23,7 @@ pip install fastapi-events[aws]
 
 # Usage
 
-`fastapi-events` despite its name, supports both FastAPI and Starlette.
+`fastapi-events` supports both FastAPI and Starlette. To use it, simply configure it as middleware.
 
 * Configuring `fastapi-events` for FastAPI:
     ```python
@@ -32,15 +33,17 @@ pip install fastapi-events[aws]
   
     from fastapi_events.dispatcher import dispatch
     from fastapi_events.middleware import EventHandlerASGIMiddleware
-    from fastapi_events.handlers.echo import EchoHandler
+    from fastapi_events.handlers.local import local_handler
+
     
     app = FastAPI()
-    app.add_middleware(EventHandlerASGIMiddleware, handlers=[EchoHandler()])
+    app.add_middleware(EventHandlerASGIMiddleware, 
+                       handlers=[local_handler])   # registering handler(s)
     
     
     @app.get("/")
     def index(request: Request) -> JSONResponse:
-        dispatch("my-fancy-event", payload={"id": 1})  # Emitting event in controllers
+        dispatch("my-fancy-event", payload={"id": 1})  # Emit events anywhere in your code
         return JSONResponse()    
     ```
 
@@ -53,42 +56,142 @@ pip install fastapi-events[aws]
   from starlette.responses import JSONResponse
   
   from fastapi_events.dispatcher import dispatch
-  from fastapi_events.handlers.echo import EchoHandler
+  from fastapi_events.handlers.local import local_handler
   from fastapi_events.middleware import EventHandlerASGIMiddleware
   
   app = Starlette(middleware=[
       Middleware(EventHandlerASGIMiddleware,
-                 handlers=[EchoHandler()])
+                 handlers=[local_handler])  # registering handlers
   ])
   
   @app.route("/")
   async def root(request: Request) -> JSONResponse:
-      dispatch("new event", payload={"id": 1})
+      dispatch("new event", payload={"id": 1})   # Emit events anywhere in your code
       return JSONResponse()
   ```
 
 ## Dispatching events
 
+Events can be dispatched anywhere in the code, as long as they are dispatched before a response is made.
+
 ```python
+# anywhere in code
+
 from fastapi_events.dispatcher import dispatch
 
 dispatch(
-    "event-name",  # Event name, accepts any valid string
-    payload={}  # Event payload, accepts any arbitrary data
+    "cat-requested-a-fish",  # Event name, accepts any valid string
+    payload={"cat_id": "fd375d23-b0c9-4271-a9e0-e028c4cd7230"}  # Event payload, accepts any arbitrary data
 )
+
+dispatch("a_cat_is_spotted")  # This works too!
 ```
+
+## Handling Events
+
+### Handle events locally
+
+The flexibility of `fastapi-events` allows us to customise how the events should be handled. 
+For starter, you might want to handle your events locally.
+
+```python
+# ex: in handlers.py
+
+from fastapi_events.handlers.local import local_handler
+from fastapi_events.typing import Event
+
+
+@local_handler.register(event_name="cat*")
+def handle_all_cat_events(event: Event):
+    """
+    this handler will match with an events prefixed with `cat`.
+    ex: "cat_eats_a_fish", "cat_is_cute", etc
+    """
+    # the `event` argument is nothing more than a tuple of event name and payload
+    event_name, payload = event
+
+    # TODO do anything you'd like with the event
+
+
+@local_handler.register(event_name="cat*")  # Tip: You can register several handlers with the same event name
+def handle_all_cat_events_another_way(event: Event):
+    pass
+
+
+@local_handler.register(event_name="*")
+async def handle_all_events(event: Event):
+    # event handlers can be coroutine function too (`async def`)
+    pass
+```
+
+### Handling events remotely
+
+For larger projects, you might have services dedicated to handle events separately.
+
+For instance, `fastapi-events` comes with AWS SQS forwarder to can forward the events to a remote queue.
+
+1. Register `SQSForwardHandler` as handlers:
+    ```python
+    app = FastAPI()
+    app.add_middleware(EventHandlerASGIMiddleware, 
+                       handlers=[SQSForwardHandler(queue_url="test-queue",
+                                                   region_name="eu-central-1")])   # registering handler(s)
+    ```
+   
+2. Start dispatching events! Events will be serialised in JSON by default:
+    ```python
+    ["event name", {"payload": "here is the payload"}]
+    ```
 
 # Built-in handlers
 
-Here is a list of built-in event handlers
+Here is a list of built-in event handlers:
 
-- `EchoHandler`: forward events to stdout (with `pprint`)
-- `SQSForwardHandler`: forwards events to an AWS SQS queue
+* `LocalHandler` / `local_handler`:
+  * import from `fastapi_events.handlers.local`
+  * for handle events locally. See examples above
+  * event name pattern matching is done using Unix shell-style matching (`fnmatch`)
+  
+* `SQSForwardHandler`: 
+  * import from `fastapi_events.handlers.aws`
+  * forwards events to an AWS SQS queue
+  
+* `EchoHandler`: 
+  * forward events to stdout with `pprint`. Great for debugging purpose
 
 # Creating your own handler
 
-TODO
+Creating your own handler is nothing more than inheriting from the `BaseEventHandler` in `fastapi_events.handlers.base`.
 
-# Design and Technical Details
+To handle events, `fastapi_events` calls one of these methods, in the following priority order:
 
-TODO
+1. `handle_many(events)`: 
+    The coroutine function should expect the backlog of events collected.
+   
+2. `handle(event)`: 
+    In cases where `handle_many()` wasn't defined in your custom handler, `handle()`
+    will be called by iterating through the events in the backlog.
+
+```python
+from typing import Iterable
+
+from fastapi_events.typing import Event
+from fastapi_events.handlers.base import BaseEventHandler
+
+class MyOwnEventHandler(BaseEventHandler):
+    async def handle(self, event: Event) -> None:
+        """
+        Handle events one by one
+        """
+        pass
+        
+    async def handle_many(self, events: Iterable[Event]) -> None:
+        """
+        Handle events by batch
+        """
+        pass
+```
+
+# Feedback, Questions?
+
+Any form of feedback and questions are welcome! Please create an issue [here](https://github.com/melvinkcx/fastapi-events/issues/new).

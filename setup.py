@@ -44,6 +44,9 @@ setuptools.setup(
         "starlette"
     ],
     extras_require={
+        "dev": [
+            "flake8>=3.9.2"
+        ],
         "test": [
             "requests",
             "pytest>=6.2.4",
