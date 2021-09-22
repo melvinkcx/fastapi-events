@@ -18,7 +18,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -e . .[dev] .[aws] .[test]
+          pip install -e . .[aws] .[test]
 
       - name: Run linting
         run: |
