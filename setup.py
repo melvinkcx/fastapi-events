@@ -49,7 +49,7 @@ setuptools.setup(
             "pytest>=6.2.4",
             "pytest-mock>=3.6.1",
             "pytest-env>=0.6.2",
-            "moto>=2.2",
+            "moto[sqs]==2.2",
             "flake8>=3.9.2"
         ],
         "aws": [
