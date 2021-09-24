@@ -8,7 +8,8 @@ Features:
 
 * straightforward API to emit events anywhere in your code
 * events are handled after responses are returned (doesn't affect response time)
-* powerful built-in handlers to handle events both locally and remotely
+* support event piping to remote queues
+* powerful built-in handlers to handle events locally and remotely
 * coroutine functions (`async def`) are the first-class citizen
 * write your handlers, never be limited to just what `fastapi_events` provides
 
@@ -127,11 +128,11 @@ async def handle_all_events(event: Event):
     pass
 ```
 
-### Handling events remotely
+### Piping Events To Remote Queues
 
 For larger projects, you might have services dedicated to handling events separately.
 
-For instance, `fastapi-events` comes with AWS SQS forwarder to forward the events to a remote queue.
+For instance, `fastapi-events` comes with AWS SQS forwarder to forward events to a remote queue.
 
 1. Register `SQSForwardHandler` as handlers:
     ```python
@@ -145,6 +146,8 @@ For instance, `fastapi-events` comes with AWS SQS forwarder to forward the event
     ```python
     ["event name", {"payload": "here is the payload"}]
     ```
+
+> Tip: to pipe events to multiple queues, provide multiple handlers while adding `EventHandlerASGIMiddleware`.
 
 # Built-in handlers
 
