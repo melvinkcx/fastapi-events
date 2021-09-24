@@ -1,4 +1,3 @@
-import json
 import uuid
 from typing import Iterable, Callable, Optional
 
@@ -6,16 +5,13 @@ import boto3 as boto3
 
 from fastapi_events.errors import ConfigurationError
 from fastapi_events.handlers.base import BaseEventHandler
+from fastapi_events.serializers import json_serializer
 from fastapi_events.typing import Event
 from fastapi_events.utils import chunk
 
 
 def _uuid4_generator(event: Event) -> str:
     return str(uuid.uuid4())
-
-
-def _json_serializer(event: Event) -> str:
-    return json.dumps(event, default=str)
 
 
 class SQSForwardHandler(BaseEventHandler):
@@ -30,18 +26,22 @@ class SQSForwardHandler(BaseEventHandler):
         region_name: str,
         serializer: Callable[[Event], str] = None,
         id_generator: Callable[[Event], str] = None,
-        max_batch_size: Optional[int] = 10  # AWS supports up to 10 messages at once
+        max_batch_size: Optional[int] = 10,  # AWS supports up to 10 messages at once
+        **boto_client_kwargs
     ):
         for fn in (serializer, id_generator):
             if fn is not None and not callable(fn):
                 raise ConfigurationError("serializer and id_generator must be of type Callable")
 
+        if max_batch_size > 10:
+            raise ConfigurationError("SQS doesn't support batch size larger than 10")
+
         self._queue_url = queue_url
         self._region_name = region_name
         self._max_batch_size = max_batch_size
 
-        self._client = boto3.client('sqs', region_name=self._region_name)
-        self._serializer = serializer or _json_serializer
+        self._client = boto3.client('sqs', region_name=self._region_name, **boto_client_kwargs)
+        self._serializer = serializer or json_serializer
         self._id_generator = id_generator or _uuid4_generator
 
     async def handle_many(self, events: Iterable[Event]) -> None:
