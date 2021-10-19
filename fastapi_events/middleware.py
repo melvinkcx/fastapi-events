@@ -1,7 +1,7 @@
 import asyncio
 from collections import deque
 from contextvars import Token
-from typing import Optional, Deque, Iterable
+from typing import Deque, Iterable
 
 from starlette.types import ASGIApp, Scope, Receive, Send
 
@@ -20,7 +20,7 @@ class EventHandlerASGIMiddleware:
             await self.app(scope, receive, send)
             return
 
-        token = event_store.set(deque())
+        token: Token = event_store.set(deque())
         try:
             await self.app(scope, receive, send)
         finally:
