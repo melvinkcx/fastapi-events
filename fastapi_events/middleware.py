@@ -1,7 +1,8 @@
 import asyncio
+import contextlib
 from collections import deque
 from contextvars import Token
-from typing import Deque, Iterable
+from typing import Deque, Iterable, Iterator
 
 from starlette.types import ASGIApp, Scope, Receive, Send
 
@@ -20,12 +21,20 @@ class EventHandlerASGIMiddleware:
             await self.app(scope, receive, send)
             return
 
+        with self.event_store_ctx():
+            try:
+                await self.app(scope, receive, send)
+            finally:
+                await self._process_events()
+
+    @contextlib.contextmanager
+    def event_store_ctx(self) -> Iterator[None]:
         token: Token = event_store.set(deque())
+
         try:
-            await self.app(scope, receive, send)
+            yield
         finally:
-            await self._process_events()
-        event_store.reset(token)
+            event_store.reset(token)
 
     async def _process_events(self) -> None:
         q: Deque[Event] = event_store.get()
