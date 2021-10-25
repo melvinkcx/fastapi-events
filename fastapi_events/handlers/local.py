@@ -1,3 +1,4 @@
+import asyncio
 import fnmatch
 import functools
 import inspect
@@ -30,7 +31,9 @@ class LocalHandler(BaseEventHandler):
             if inspect.iscoroutinefunction(handler):
                 await handler(event)
             else:
-                handler(event)
+                # Making sure sync function will never block the event loop
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, functools.partial(handler, event))
 
     def _register_handler(self, event_name, func):
         if event_name not in self._registry:
