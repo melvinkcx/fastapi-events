@@ -1,3 +1,5 @@
+from contextlib import suppress
+
 import pytest
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -12,12 +14,15 @@ from fastapi_events.typing import Event
 
 
 @pytest.mark.parametrize(
-    "return_error,raise_error",
-    ((True, False),
-     (False, False),
-     (False, True))
+    "return_non_200,raise_error,add_global_exception_handler",
+    ((True, False, None),
+     (False, False, None),
+     (False, True, True),
+     (False, True, False))
 )
-def test_event_handling(return_error, raise_error):
+def test_event_handling(
+    return_non_200, raise_error, add_global_exception_handler
+):
     """
     Making sure events are handled regardless of response status, and exceptions
     This is unlike how BackgroundTask works.
@@ -37,9 +42,10 @@ def test_event_handling(return_error, raise_error):
         Middleware(EventHandlerASGIMiddleware,
                    handlers=[dummy_handler_1, dummy_handler_2])])
 
-    @app.exception_handler(ValueError)
-    def global_exception_handler(request, exc):
-        return JSONResponse(status_code=500)
+    if add_global_exception_handler:
+        @app.exception_handler(ValueError)
+        def global_exception_handler(request, exc):
+            return JSONResponse(status_code=500)
 
     @app.route("/")
     async def root(request: Request) -> JSONResponse:
@@ -49,9 +55,11 @@ def test_event_handling(return_error, raise_error):
         if raise_error:
             raise ValueError
 
-        return JSONResponse(status_code=400 if return_error else 200)
+        return JSONResponse(status_code=400 if return_non_200 else 200)
 
     client = TestClient(app)
-    client.get("/")
+
+    with suppress(ValueError):
+        client.get("/")
 
     assert len(dummy_handler_1.event_processed) == len(dummy_handler_2.event_processed) == 5
