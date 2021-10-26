@@ -11,20 +11,25 @@ from fastapi_events.middleware import EventHandlerASGIMiddleware
 from fastapi_events.typing import Event
 
 
-class DummyHandler(BaseEventHandler):
-    def __init__(self):
-        self.event_processed = []
-
-    async def handle(self, event: Event) -> None:
-        self.event_processed.append(event)
-
-
-@pytest.mark.parametrize("return_error", [True, False])
-def test_event_handling(return_error):
+@pytest.mark.parametrize(
+    "return_error,raise_error",
+    ((True, False),
+     (False, False),
+     (False, True))
+)
+def test_event_handling(return_error, raise_error):
     """
-    Making sure events are handled regardless of response status
+    Making sure events are handled regardless of response status, and exceptions
     This is unlike how BackgroundTask works.
     """
+
+    class DummyHandler(BaseEventHandler):
+        def __init__(self):
+            self.event_processed = []
+
+        async def handle(self, event: Event) -> None:
+            self.event_processed.append(event)
+
     dummy_handler_1 = DummyHandler()
     dummy_handler_2 = DummyHandler()
 
@@ -32,10 +37,17 @@ def test_event_handling(return_error):
         Middleware(EventHandlerASGIMiddleware,
                    handlers=[dummy_handler_1, dummy_handler_2])])
 
+    @app.exception_handler(ValueError)
+    def global_exception_handler(request, exc):
+        return JSONResponse(status_code=500)
+
     @app.route("/")
     async def root(request: Request) -> JSONResponse:
         for idx in range(5):
             dispatch(event_name="new event", payload={"id": idx + 1})
+
+        if raise_error:
+            raise ValueError
 
         return JSONResponse(status_code=400 if return_error else 200)
 
