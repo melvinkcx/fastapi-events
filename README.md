@@ -223,7 +223,7 @@ truthy values.
    lifecycle of FastAPI/Starlette, such as calling `dispatch()` after a response has been returned.
 
    If you're getting this during testing, you may consider disabling `dispatch()` during testing.
-   See [Suppressing Events / Disabling `dispatch()` Globally](#suppressing-events-disabling-dispatch-globally) for details.
+   See [Suppressing Events / Disabling `dispatch()` Globally](#suppressing-events--disabling-dispatch-globally) for details.
 
 # Feedback, Questions?
 
