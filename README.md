@@ -199,6 +199,30 @@ class MyOwnEventHandler(BaseEventHandler):
         pass
 ```
 
+# Testing Tip: Disabling `dispatch()` Globally
+
+You might want to disable dispatching of events globally especially during testing. 
+You can do so without having to mock or patch the `dispatch()` function.
+Simple set the environment variable `FASTAPI_EVENTS_DISABLE_DISPATCH` to `1`, `True` or any truthy values.
+
+# FAQs:
+
+1. I'm getting `LookupError` when `dispatch()` is used:
+    ```bash
+        def dispatch(event_name: str, payload: Optional[Any] = None) -> None:
+    >       q: Deque[Event] = event_store.get()
+    E       LookupError: <ContextVar name='fastapi_context' at 0x400a1f12b0>
+    ```
+   
+    Answer:
+   
+    `dispatch()` relies on [ContextVars](https://docs.python.org/3/library/contextvars.html) to work properly. 
+    There are many reasons why `LookupError` can occur. A common reason is `dispatch()` is called outside the 
+    request-response lifecyle of FastAPI/Starlette. 
+    It can also occur when calling `dispatch()` after a response has been returned.
+    
+    If you're getting this during testing, you may consider disabling `dispatch()` during testing. See [Testing Tip: Disabling `dispatch()` Globally](#testing-tip-disabling-dispatch-globally) for details.
+
 # Feedback, Questions?
 
 Any form of feedback and questions are welcome! Please create an issue [here](https://github.com/melvinkcx/fastapi-events/issues/new).
