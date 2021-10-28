@@ -95,8 +95,8 @@ dispatch("a_cat_is_spotted")  # This works too!
 
 ### Handle events locally
 
-The flexibility of `fastapi-events` allows us to customise how the events should be handled. 
-For starters, you might want to handle your events locally.
+The flexibility of `fastapi-events` allows us to customise how the events should be handled. For starters, you might
+want to handle your events locally.
 
 ```python
 # ex: in handlers.py
@@ -141,7 +141,7 @@ For instance, `fastapi-events` comes with AWS SQS forwarder to forward events to
                        handlers=[SQSForwardHandler(queue_url="test-queue",
                                                    region_name="eu-central-1")])   # registering handler(s)
     ```
-   
+
 2. Start dispatching events! Events will be serialised into JSON format by default:
     ```python
     ["event name", {"payload": "here is the payload"}]
@@ -154,30 +154,31 @@ For instance, `fastapi-events` comes with AWS SQS forwarder to forward events to
 Here is a list of built-in event handlers:
 
 * `LocalHandler` / `local_handler`:
-  * import from `fastapi_events.handlers.local`
-  * for handling events locally. See examples [above](#handle-events-locally)
-  * event name pattern matching is done using Unix shell-style matching (`fnmatch`)
-  
-* `SQSForwardHandler`: 
-  * import from `fastapi_events.handlers.aws`
-  * to forward events to an AWS SQS queue
-  
-* `EchoHandler`: 
-  * import from `fastapi_events.handlers.echo`
-  * to forward events to stdout with `pprint`. Great for debugging purpose
+    * import from `fastapi_events.handlers.local`
+    * for handling events locally. See examples [above](#handle-events-locally)
+    * event name pattern matching is done using Unix shell-style matching (`fnmatch`)
+
+* `SQSForwardHandler`:
+    * import from `fastapi_events.handlers.aws`
+    * to forward events to an AWS SQS queue
+
+* `EchoHandler`:
+    * import from `fastapi_events.handlers.echo`
+    * to forward events to stdout with `pprint`. Great for debugging purpose
 
 # Creating your own handler
 
-Creating your own handler is nothing more than inheriting from the `BaseEventHandler` class in `fastapi_events.handlers.base`.
+Creating your own handler is nothing more than inheriting from the `BaseEventHandler` class
+in `fastapi_events.handlers.base`.
 
 To handle events, `fastapi_events` calls one of these methods, in the following priority order:
 
-1. `handle_many(events)`: 
-    The coroutine function should expect the backlog of the events collected.
-   
-2. `handle(event)`: 
-    In cases where `handle_many()` weren't defined in your custom handler, `handle()`
-    will be called by iterating through the events in the backlog.
+1. `handle_many(events)`:
+   The coroutine function should expect the backlog of the events collected.
+
+2. `handle(event)`:
+   In cases where `handle_many()` weren't defined in your custom handler, `handle()`
+   will be called by iterating through the events in the backlog.
 
 ```python
 from typing import Iterable
@@ -185,13 +186,14 @@ from typing import Iterable
 from fastapi_events.typing import Event
 from fastapi_events.handlers.base import BaseEventHandler
 
+
 class MyOwnEventHandler(BaseEventHandler):
     async def handle(self, event: Event) -> None:
         """
         Handle events one by one
         """
         pass
-        
+
     async def handle_many(self, events: Iterable[Event]) -> None:
         """
         Handle events by batch
@@ -199,11 +201,11 @@ class MyOwnEventHandler(BaseEventHandler):
         pass
 ```
 
-# Testing Tip: Disabling `dispatch()` Globally
+# Suppressing Events / Disabling `dispatch()` Globally
 
-You might want to disable dispatching of events globally especially during testing. 
-You can do so without having to mock or patch the `dispatch()` function.
-Simple set the environment variable `FASTAPI_EVENTS_DISABLE_DISPATCH` to `1`, `True` or any truthy values.
+In case you want to suppress events globally especially during testing, you can do so without having to mock or patch
+the `dispatch()` function. Simple set the environment variable `FASTAPI_EVENTS_DISABLE_DISPATCH` to `1`, `True` or any
+truthy values.
 
 # FAQs:
 
@@ -213,16 +215,17 @@ Simple set the environment variable `FASTAPI_EVENTS_DISABLE_DISPATCH` to `1`, `T
     >       q: Deque[Event] = event_store.get()
     E       LookupError: <ContextVar name='fastapi_context' at 0x400a1f12b0>
     ```
-   
-    Answer:
-   
-    `dispatch()` relies on [ContextVars](https://docs.python.org/3/library/contextvars.html) to work properly. 
-    There are many reasons why `LookupError` can occur. A common reason is `dispatch()` is called outside the 
-    request-response lifecyle of FastAPI/Starlette. 
-    It can also occur when calling `dispatch()` after a response has been returned.
-    
-    If you're getting this during testing, you may consider disabling `dispatch()` during testing. See [Testing Tip: Disabling `dispatch()` Globally](#testing-tip-disabling-dispatch-globally) for details.
+
+   Answer:
+
+   `dispatch()` relies on [ContextVars](https://docs.python.org/3/library/contextvars.html) to work properly. There are
+   many reasons why `LookupError` can occur. A common reason is `dispatch()` is called outside the request-response
+   lifecycle of FastAPI/Starlette, such as calling `dispatch()` after a response has been returned.
+
+   If you're getting this during testing, you may consider disabling `dispatch()` during testing.
+   See [Suppressing Events / Disabling `dispatch()` Globally](#suppressing-events-disabling-dispatch-globally) for details.
 
 # Feedback, Questions?
 
-Any form of feedback and questions are welcome! Please create an issue [here](https://github.com/melvinkcx/fastapi-events/issues/new).
+Any form of feedback and questions are welcome! Please create an
+issue [here](https://github.com/melvinkcx/fastapi-events/issues/new).
