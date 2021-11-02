@@ -2,12 +2,9 @@ import asyncio
 import fnmatch
 import functools
 import inspect
-import logging
 
 from fastapi_events.handlers.base import BaseEventHandler
 from fastapi_events.typing import Event
-
-logger = logging.getLogger(__name__)
 
 
 class LocalHandler(BaseEventHandler):
@@ -30,10 +27,6 @@ class LocalHandler(BaseEventHandler):
             return _wrap(func=_func)
 
     async def handle(self, event: Event) -> None:
-        if inspect.isfunction(event) or inspect.iscoroutinefunction(event):
-            logger.warning("local_handler.handle() is called with a function/coroutine."
-                           "Do you mean using local_handler.register() to annotate handlers instead?")
-
         for handler in self._get_handlers_for_event(event_name=event[0]):
             if inspect.iscoroutinefunction(handler):
                 await handler(event)
