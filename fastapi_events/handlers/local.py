@@ -36,12 +36,18 @@ class LocalHandler(BaseEventHandler):
                 await loop.run_in_executor(None, functools.partial(handler, event))
 
     def _register_handler(self, event_name, func):
+        if not isinstance(event_name, str):
+            event_name = str(event_name)
+
         if event_name not in self._registry:
             self._registry[event_name] = []
 
         self._registry[event_name].append(func)
 
     def _get_handlers_for_event(self, event_name):
+        if not isinstance(event_name, str):
+            event_name = str(event_name)
+
         # TODO consider adding a cache
         handlers = []
         for event_name_pattern, registered_handlers in self._registry.items():

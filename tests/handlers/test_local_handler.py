@@ -1,3 +1,5 @@
+from enum import Enum
+
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -66,3 +68,32 @@ def test_local_handler():
         ("dance", 1)
     ):
         assert len(events_handled[event_category]) == expected_count
+
+
+def test_local_handler_with_enum():
+    """
+    Test local_handler with Enum as event name
+    """
+
+    class Events(Enum):
+        CREATED = "CREATED"
+
+    events_handled = []
+
+    @local_handler.register(event_name=Events.CREATED)
+    async def handle_all_created_events(event: Event):
+        events_handled.append(event)
+
+    app = Starlette(middleware=[
+        Middleware(EventHandlerASGIMiddleware,
+                   handlers=[local_handler])])
+
+    @app.route("/")
+    async def root(request: Request) -> JSONResponse:
+        dispatch(Events.CREATED)
+        return JSONResponse()
+
+    client = TestClient(app)
+    client.get("/")
+
+    assert events_handled[0][0] == Events.CREATED

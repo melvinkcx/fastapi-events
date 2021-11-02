@@ -1,3 +1,4 @@
-from typing import Tuple, Any
+from enum import Enum
+from typing import Tuple, Any, Union
 
-Event = Tuple[str, Any]
+Event = Tuple[Union[str, Enum], Any]
