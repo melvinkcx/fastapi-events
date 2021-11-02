@@ -66,3 +66,7 @@ def test_local_handler():
         ("dance", 1)
     ):
         assert len(events_handled[event_category]) == expected_count
+
+
+def test_local_handler_with_enum():
+    pass
