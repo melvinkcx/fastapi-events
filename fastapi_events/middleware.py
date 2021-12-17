@@ -4,7 +4,7 @@ from collections import deque
 from contextvars import Token
 from typing import Deque, Iterable, Iterator
 
-from starlette.types import ASGIApp, Scope, Receive, Send
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from fastapi_events import event_store
 from fastapi_events.handlers.base import BaseEventHandler
