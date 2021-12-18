@@ -1,6 +1,6 @@
 import json
 import uuid
-from typing import Iterable, Callable, Optional
+from typing import Callable, Iterable
 
 import boto3 as boto3
 
@@ -30,7 +30,7 @@ class SQSForwardHandler(BaseEventHandler):
         region_name: str,
         serializer: Callable[[Event], str] = None,
         id_generator: Callable[[Event], str] = None,
-        max_batch_size: Optional[int] = 10,  # AWS supports up to 10 messages at once
+        max_batch_size: int = 10,  # AWS supports up to 10 messages at once
         **boto_client_kwargs
     ):
         for fn in (serializer, id_generator):

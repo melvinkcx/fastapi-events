@@ -14,12 +14,7 @@ class LocalHandler(BaseEventHandler):
     def register(self, _func=None, event_name="*"):
         def _wrap(func):
             self._register_handler(event_name, func)
-
-            @functools.wraps(func)
-            def _wrapper(*args, **kwargs):
-                return func(event_name, *args, **kwargs)
-
-            return _wrapper
+            return func
 
         if _func is None:
             return _wrap

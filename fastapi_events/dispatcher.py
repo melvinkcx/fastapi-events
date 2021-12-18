@@ -1,7 +1,7 @@
 import os
 from distutils.util import strtobool
 from enum import Enum
-from typing import Deque, Any, Optional, Union
+from typing import Any, Deque, Optional, Union
 
 from fastapi_events import event_store
 from fastapi_events.typing import Event
