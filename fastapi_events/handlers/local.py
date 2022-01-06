@@ -18,8 +18,8 @@ class LocalHandler(BaseEventHandler):
 
         if _func is None:
             return _wrap
-        else:
-            return _wrap(func=_func)
+
+        return _wrap(func=_func)
 
     async def handle(self, event: Event) -> None:
         for handler in self._get_handlers_for_event(event_name=event[0]):

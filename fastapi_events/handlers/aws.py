@@ -2,7 +2,7 @@ import json
 import uuid
 from typing import Callable, Iterable
 
-import boto3 as boto3
+import boto3
 
 from fastapi_events.errors import ConfigurationError
 from fastapi_events.handlers.base import BaseEventHandler
@@ -10,7 +10,7 @@ from fastapi_events.typing import Event
 from fastapi_events.utils import chunk
 
 
-def _uuid4_generator(event: Event) -> str:
+def _uuid4_generator(_: Event) -> str:
     return str(uuid.uuid4())
 
 
