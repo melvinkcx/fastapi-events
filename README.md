@@ -8,10 +8,11 @@ Features:
 
 * straightforward API to emit events anywhere in your code
 * events are handled after responses are returned (doesn't affect response time)
-* support event piping to remote queues
+* supports event piping to remote queues
 * powerful built-in handlers to handle events locally and remotely
 * coroutine functions (`async def`) are the first-class citizen
 * write your handlers, never be limited to just what `fastapi_events` provides
+* [New] supports event payload validation via Pydantic (See [here](#event-payload-validation-with-pydantic))
 
 ## Installation
 
@@ -90,6 +91,10 @@ dispatch(
 
 dispatch("a_cat_is_spotted")  # This works too!
 ```
+
+### Event Payload Validation With Pydantic
+
+TODO
 
 ## Handling Events
 
@@ -201,11 +206,19 @@ class MyOwnEventHandler(BaseEventHandler):
         pass
 ```
 
-# Suppressing Events / Disabling `dispatch()` Globally
+# Cookbook
+
+## 1) Suppressing Events / Disabling `dispatch()` Globally
 
 In case you want to suppress events globally especially during testing, you can do so without having to mock or patch
 the `dispatch()` function. Simple set the environment variable `FASTAPI_EVENTS_DISABLE_DISPATCH` to `1`, `True` or any
 truthy values.
+
+## 2) Validating Event Payload During Dispatch
+
+> Requires Pydantic. If you're using FastAPI, instead of Starlette, there's no extra dependencies needed
+
+TODO
 
 # FAQs:
 
@@ -223,7 +236,15 @@ truthy values.
    lifecycle of FastAPI/Starlette, such as calling `dispatch()` after a response has been returned.
 
    If you're getting this during testing, you may consider disabling `dispatch()` during testing.
-   See [Suppressing Events / Disabling `dispatch()` Globally](#suppressing-events--disabling-dispatch-globally) for details.
+   See [Suppressing Events / Disabling `dispatch()` Globally](#suppressing-events--disabling-dispatch-globally) for
+   details.
+
+2. My event handlers are not registered / Local handlers are not being executed:
+
+   Answer:
+
+   Make sure the module where your local event handlers are defined is loaded during runtime. A simple fix is to import
+   the module in your `__init__.py`. This will ensure the modules are properly loaded during runtime.
 
 # Feedback, Questions?
 
