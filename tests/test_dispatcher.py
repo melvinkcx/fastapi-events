@@ -3,7 +3,6 @@ import os
 import uuid
 from datetime import datetime
 from enum import Enum
-from uuid import UUID
 
 import pydantic
 import pytest
@@ -55,7 +54,7 @@ def test_payload_validation_with_pydantic(
         SIGNED_UP = "USER_SIGNED_UP"
 
     @payload_schema.register(event_name=UserEvents.SIGNED_UP)
-    class SignUpEventSchema(pydantic.BaseModel):
+    class _SignUpEventSchema(pydantic.BaseModel):
         user_id: uuid.UUID
         created_at: datetime
 
