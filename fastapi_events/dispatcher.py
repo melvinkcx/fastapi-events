@@ -1,10 +1,12 @@
 import os
 from distutils.util import strtobool
 from enum import Enum
-from typing import Any, Deque, Optional, Union, Dict
+from typing import Any, Deque, Dict, Optional, Union
 
 from fastapi_events import event_store
-from fastapi_events.registry.payload_schema import registry as payload_schema_registry
+from fastapi_events.registry.base import BaseEventPayloadSchemaRegistry
+from fastapi_events.registry.payload_schema import \
+    registry as default_payload_schema_registry
 from fastapi_events.typing import Event
 
 try:
@@ -35,7 +37,8 @@ def dispatch(
     event_name: Union[str, Enum],
     payload: Optional[Any] = None,
     validate_payload: bool = True,
-    payload_schema_cls_dict_args: Optional[Dict[str, Any]] = None
+    payload_schema_cls_dict_args: Optional[Dict[str, Any]] = None,
+    payload_schema_registry: Optional[BaseEventPayloadSchemaRegistry] = None
 ) -> None:
     """
     A wrapper of the main dispatcher function with additional checks:
@@ -43,10 +46,13 @@ def dispatch(
     """
 
     # Validate event payload with schema registered
-    if validate_payload and HAS_PYDANTIC:
+    if HAS_PYDANTIC and validate_payload:
+        if not payload_schema_registry:
+            payload_schema_registry = default_payload_schema_registry
+
         payload_schema_cls = payload_schema_registry.get(event_name)
         if payload_schema_cls:
             payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
-            payload = payload_schema_cls(**payload).dict(**payload_schema_cls_dict_args)
+            payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
 
     return _dispatch(event_name=event_name, payload=payload)
