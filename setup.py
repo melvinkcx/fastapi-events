@@ -27,7 +27,7 @@ setuptools.setup(
     url="https://github.com/melvinkcx/fastapi-events",
     packages=setuptools.find_packages(exclude=["tests.*"]),
     classifiers={
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: MIT License",
@@ -36,10 +36,11 @@ setuptools.setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9"
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     },
     python_requires='>=3.7',
-    keywords=["starlette", "fastapi"],
+    keywords=["starlette", "fastapi", "pydantic"],
     install_requires=[
         "starlette"
     ],
@@ -50,7 +51,8 @@ setuptools.setup(
             "pytest-mock>=3.6.1",
             "pytest-env>=0.6.2",
             "moto[sqs]==2.2",
-            "flake8>=3.9.2"
+            "flake8>=3.9.2",
+            "pydantic>=1.5.0"
         ],
         "aws": [
             "boto3>=1.14"

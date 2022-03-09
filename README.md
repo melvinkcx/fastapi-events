@@ -8,10 +8,11 @@ Features:
 
 * straightforward API to emit events anywhere in your code
 * events are handled after responses are returned (doesn't affect response time)
-* support event piping to remote queues
+* supports event piping to remote queues
 * powerful built-in handlers to handle events locally and remotely
 * coroutine functions (`async def`) are the first-class citizen
 * write your handlers, never be limited to just what `fastapi_events` provides
+* (__>=0.3.0__) supports event payload validation via Pydantic (See [here](#event-payload-validation-with-pydantic))
 
 ## Installation
 
@@ -90,6 +91,52 @@ dispatch(
 
 dispatch("a_cat_is_spotted")  # This works too!
 ```
+
+### Event Payload Validation With Pydantic
+
+Event payload validation is possible since version 0.3.0. To enable, simply register
+a [Pydantic models](https://pydantic-docs.helpmanual.io/usage/models/) with the corresponding event name.
+
+```python
+import uuid
+from enum import Enum
+from datetime import datetime
+
+from pydantic import BaseModel
+from fastapi_events.registry.payload_schema import registry as payload_schema
+
+
+class UserEvents(Enum):
+    SIGNED_UP = "USER_SIGNED_UP"
+    ACTIVATED = "USER_ACTIVATED"
+
+
+# Registering your event payload schema
+@payload_schema.register(event_name=UserEvents.SIGNED_UP)
+class SignUpPayload(BaseModel):
+    user_id: uuid.UUID
+    created_at: datetime
+```
+
+> Wildcard in event name is currently not supported
+
+Payload will be validated automatically without any changes made while invoking the dispatcher.
+
+```python
+# Events with payload schema registered
+dispatch(UserEvents.SIGNED_UP)  # raises ValidationError, missing payload
+dispatch(UserEvents.SIGNED_UP,
+         {"user_id": "9e79cdbb-b216-40f7-9a05-20d223dee89a"})  # raises ValidationError, missing `created_at`
+dispatch(UserEvents.SIGNED_UP,
+         {"user_id": "9e79cdbb-b216-40f7-9a05-20d223dee89a", created_at: datetime.utcnow()})  # OK!
+
+# Events without payload schema -> No validation will be performed
+dispatch(UserEvents.ACTIVATED,
+         {"user_id": "9e79cdbb-b216-40f7-9a05-20d223dee89a"})  # OK! no validation will be performed
+```
+
+> Reminder: payload validation is optional.
+> Payload of events without its schema registered will not be validated.
 
 ## Handling Events
 
@@ -201,11 +248,20 @@ class MyOwnEventHandler(BaseEventHandler):
         pass
 ```
 
-# Suppressing Events / Disabling `dispatch()` Globally
+# Cookbook
+
+## 1) Suppressing Events / Disabling `dispatch()` Globally
 
 In case you want to suppress events globally especially during testing, you can do so without having to mock or patch
 the `dispatch()` function. Simple set the environment variable `FASTAPI_EVENTS_DISABLE_DISPATCH` to `1`, `True` or any
 truthy values.
+
+## 2) Validating Event Payload During Dispatch
+
+> Requires Pydantic, which comes with FastAPI.
+> If you're using Starlette, you might need to install Pydantic
+
+See [Event Payload Validation With Pydantic](#event-payload-validation-with-pydantic)
 
 # FAQs:
 
@@ -223,7 +279,15 @@ truthy values.
    lifecycle of FastAPI/Starlette, such as calling `dispatch()` after a response has been returned.
 
    If you're getting this during testing, you may consider disabling `dispatch()` during testing.
-   See [Suppressing Events / Disabling `dispatch()` Globally](#suppressing-events--disabling-dispatch-globally) for details.
+   See [Suppressing Events / Disabling `dispatch()` Globally](#suppressing-events--disabling-dispatch-globally) for
+   details.
+
+2. My event handlers are not registered / Local handlers are not being executed:
+
+   Answer:
+
+   Make sure the module where your local event handlers are defined is loaded during runtime. A simple fix is to import
+   the module in your `__init__.py`. This will ensure the modules are properly loaded during runtime.
 
 # Feedback, Questions?
 
