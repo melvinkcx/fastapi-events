@@ -4,7 +4,7 @@ from distutils.util import strtobool
 from enum import Enum
 from typing import Any, Deque, Dict, Optional, Union
 
-from fastapi_events import (event_store, handler_store, is_handling_events,
+from fastapi_events import (event_store, handler_store, in_req_res_cycle,
                             middleware_identifier)
 from fastapi_events.registry.base import BaseEventPayloadSchemaRegistry
 from fastapi_events.registry.payload_schema import \
@@ -23,7 +23,7 @@ DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS = {"exclude_unset": True}
 
 def _dispatch_as_task(event_name: Union[str, Enum], payload: Optional[Any] = None) -> None:
     """
-    TODO #23 Implement event chaining
+    TODO #23 To support event chaining
     """
     middleware_id: int = middleware_identifier.get()
     handlers = handler_store[middleware_id]
@@ -31,7 +31,7 @@ def _dispatch_as_task(event_name: Union[str, Enum], payload: Optional[Any] = Non
     async def task():
         await asyncio.gather(*[handler.handle((event_name, payload)) for handler in handlers])
 
-    asyncio.create_task(task())
+    asyncio.create_task(task())  # FIXME this will have a new context, look into inheriting contextvar
 
 
 def _dispatch(event_name: Union[str, Enum], payload: Optional[Any] = None) -> None:
@@ -44,14 +44,13 @@ def _dispatch(event_name: Union[str, Enum], payload: Optional[Any] = None) -> No
     if DISABLE_DISPATCH_GLOBALLY:
         return
 
-    # TODO #23
-    in_handling_mode: bool = is_handling_events.get()
-    if in_handling_mode:
-        _dispatch_as_task(event_name, payload)
-
-    else:
+    is_handling_request: bool = in_req_res_cycle.get()
+    if is_handling_request:
         q: Deque[Event] = event_store.get()
         q.append((event_name, payload))
+
+    else:
+        _dispatch_as_task(event_name, payload)
 
 
 def dispatch(
