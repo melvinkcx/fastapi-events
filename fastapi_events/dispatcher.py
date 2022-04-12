@@ -1,9 +1,11 @@
+import asyncio
 import os
 from distutils.util import strtobool
 from enum import Enum
 from typing import Any, Deque, Dict, Optional, Union
 
-from fastapi_events import event_store
+from fastapi_events import (event_store, handler_store, is_handling_events,
+                            middleware_identifier)
 from fastapi_events.registry.base import BaseEventPayloadSchemaRegistry
 from fastapi_events.registry.payload_schema import \
     registry as default_payload_schema_registry
@@ -19,6 +21,19 @@ except ImportError:
 DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS = {"exclude_unset": True}
 
 
+def _dispatch_as_task(event_name: Union[str, Enum], payload: Optional[Any] = None) -> None:
+    """
+    TODO #23 Implement event chaining
+    """
+    middleware_id: int = middleware_identifier.get()
+    handlers = handler_store[middleware_id]
+
+    async def task():
+        await asyncio.gather(*[handler.handle((event_name, payload)) for handler in handlers])
+
+    asyncio.create_task(task())
+
+
 def _dispatch(event_name: Union[str, Enum], payload: Optional[Any] = None) -> None:
     """
     The main dispatcher function.
@@ -29,8 +44,14 @@ def _dispatch(event_name: Union[str, Enum], payload: Optional[Any] = None) -> No
     if DISABLE_DISPATCH_GLOBALLY:
         return
 
-    q: Deque[Event] = event_store.get()
-    q.append((event_name, payload))
+    # TODO #23
+    in_handling_mode: bool = is_handling_events.get()
+    if in_handling_mode:
+        _dispatch_as_task(event_name, payload)
+
+    else:
+        q: Deque[Event] = event_store.get()
+        q.append((event_name, payload))
 
 
 def dispatch(
