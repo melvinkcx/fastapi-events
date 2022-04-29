@@ -48,8 +48,9 @@ setuptools.setup(
         "test": [
             "requests",
             "pytest>=6.2.4",
-            "pytest-mock>=3.6.1",
+            "pytest-asyncio>=0.18.3",
             "pytest-env>=0.6.2",
+            "pytest-mock>=3.6.1",
             "moto[sqs]==2.2",
             "flake8>=3.9.2",
             "pydantic>=1.5.0"
