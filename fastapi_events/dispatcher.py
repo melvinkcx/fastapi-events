@@ -1,6 +1,5 @@
 import asyncio
 import os
-from distutils.util import strtobool
 from enum import Enum
 from typing import Any, Deque, Dict, Iterable, Optional, Union
 
@@ -10,6 +9,7 @@ from fastapi_events.registry.base import BaseEventPayloadSchemaRegistry
 from fastapi_events.registry.payload_schema import \
     registry as default_payload_schema_registry
 from fastapi_events.typing import Event
+from fastapi_events.utils import strtobool
 
 try:
     import pydantic  # noqa: F401
