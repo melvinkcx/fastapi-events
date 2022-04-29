@@ -45,7 +45,7 @@ def test_event_handling(
     if add_global_exception_handler:
         @app.exception_handler(ValueError)
         def global_exception_handler(request, exc):
-            return JSONResponse(status_code=500)
+            return JSONResponse([], status_code=500)
 
     @app.route("/")
     async def root(request: Request) -> JSONResponse:
@@ -55,7 +55,7 @@ def test_event_handling(
         if raise_error:
             raise ValueError
 
-        return JSONResponse(status_code=400 if return_non_200 else 200)
+        return JSONResponse([], status_code=400 if return_non_200 else 200)
 
     client = TestClient(app)
 

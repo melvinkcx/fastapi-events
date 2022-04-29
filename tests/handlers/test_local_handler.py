@@ -2,16 +2,15 @@ from enum import Enum
 from typing import Tuple, Callable
 
 import pytest
+from fastapi_events.dispatcher import dispatch
+from fastapi_events.handlers.local import LocalHandler
+from fastapi_events.middleware import EventHandlerASGIMiddleware
+from fastapi_events.typing import Event
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
-
-from fastapi_events.dispatcher import dispatch
-from fastapi_events.handlers.local import LocalHandler
-from fastapi_events.middleware import EventHandlerASGIMiddleware
-from fastapi_events.typing import Event
 
 
 @pytest.fixture
@@ -23,7 +22,7 @@ def setup_test() -> Callable:
         @app.route("/events")
         async def root(request: Request) -> JSONResponse:
             dispatch(event_name=request.query_params.get("event"))
-            return JSONResponse()
+            return JSONResponse([])
 
         return app, handler
 
@@ -73,7 +72,7 @@ def test_local_handler(
         for event_name in event_to_be_dispatched:
             dispatch(event_name=event_name)
 
-        return JSONResponse()
+        return JSONResponse([])
 
     client = TestClient(app)
     for event in event_to_be_dispatched:
@@ -109,7 +108,7 @@ def test_local_handler_with_enum(
     @app.route("/events/enum_type")
     async def root(request: Request) -> JSONResponse:
         dispatch(Events.CREATED)
-        return JSONResponse()
+        return JSONResponse([])
 
     client = TestClient(app)
     client.get("/events/enum_type")

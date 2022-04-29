@@ -13,6 +13,7 @@ Features:
 * coroutine functions (`async def`) are the first-class citizen
 * write your handlers, never be limited to just what `fastapi_events` provides
 * (__>=0.3.0__) supports event payload validation via Pydantic (See [here](#event-payload-validation-with-pydantic))
+* (__>=0.4.0__) supports event chaining: dispatching events within handlers (thank [@ndopj](https://github.com/ndopj) for contributing to the idea)
 
 ## Installation
 
@@ -262,6 +263,20 @@ truthy values.
 > If you're using Starlette, you might need to install Pydantic
 
 See [Event Payload Validation With Pydantic](#event-payload-validation-with-pydantic)
+
+## 3) Dispatching events within handlers (Event Chaining)
+
+It is now possible to dispatch events within another event handlers. You'll need version 0.4 or above. 
+
+Comparison between events dispatched within the request-response cycle and event handlers are:
+
+|                                                                 | dispatched within request-response cycle         | dispatched within event handlers                        |
+|-----------------------------------------------------------------|--------------------------------------------------|---------------------------------------------------------|
+| processing of events                                            | will be handled after the response has been made | will be scheduled to the running event loop immediately |
+| order of processing                                             | always after the response is made                | not guaranteed                                          |
+| supports payload schema validation with Pydantic                | Yes                                              | Yes                                                     |
+| can be disabled globally with `FASTAPI_EVENTS_DISABLE_DISPATCH` | Yes                                              | Yes                                                     |
+
 
 # FAQs:
 
