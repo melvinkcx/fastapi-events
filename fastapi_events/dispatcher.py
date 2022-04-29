@@ -2,10 +2,10 @@ import asyncio
 import os
 from distutils.util import strtobool
 from enum import Enum
-from typing import Any, Deque, Dict, Optional, Union
+from typing import Any, Deque, Dict, Iterable, Optional, Union
 
-from fastapi_events import (event_store, handler_store, in_req_res_cycle,
-                            middleware_identifier)
+from fastapi_events import (BaseEventHandler, event_store, handler_store,
+                            in_req_res_cycle, middleware_identifier)
 from fastapi_events.registry.base import BaseEventPayloadSchemaRegistry
 from fastapi_events.registry.payload_schema import \
     registry as default_payload_schema_registry
@@ -21,17 +21,25 @@ except ImportError:
 DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS = {"exclude_unset": True}
 
 
-def _dispatch_as_task(event_name: Union[str, Enum], payload: Optional[Any] = None) -> None:
+def _list_handlers() -> Iterable[BaseEventHandler]:
     """
-    TODO #23 To support event chaining
+    Get registered handlers from the global handler_store with middleware_identifier
     """
     middleware_id: int = middleware_identifier.get()
-    handlers = handler_store[middleware_id]
+    return handler_store[middleware_id]
+
+
+def _dispatch_as_task(event_name: Union[str, Enum], payload: Optional[Any] = None) -> asyncio.Task:
+    """
+    #23 To support event chaining
+    - dispatch event and schedule its handling as an asyncio.Task
+    """
+    handlers = _list_handlers()
 
     async def task():
         await asyncio.gather(*[handler.handle((event_name, payload)) for handler in handlers])
 
-    asyncio.create_task(task())  # FIXME this will have a new context, look into inheriting contextvar
+    return asyncio.create_task(task())
 
 
 def _dispatch(event_name: Union[str, Enum], payload: Optional[Any] = None) -> None:
@@ -61,8 +69,16 @@ def dispatch(
     payload_schema_registry: Optional[BaseEventPayloadSchemaRegistry] = None
 ) -> None:
     """
-    A wrapper of the main dispatcher function with additional checks:
-    - It validates the payload against Pydantic schema registered. It will be deactivated if Pydantic is not installed.
+    A wrapper of the main dispatcher function with additional checks.
+
+    Steps:
+    1. validate event payload with schema registered:
+        - only when pydantic is available
+        - only when a payload schema has been registered with the event
+    2. check if event dispatching has been disabled, return if so
+    3. check if dispatch is called within the request-response cycle:
+        3.1. if so, append the event into the event_store context var
+        3.2. if not, create a Task to handle the event with handlers registered
     """
 
     # Validate event payload with schema registered
