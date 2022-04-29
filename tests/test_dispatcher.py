@@ -12,12 +12,31 @@ from fastapi_events.dispatcher import dispatch
 from fastapi_events.registry.payload_schema import EventPayloadSchemaRegistry
 
 
+@pytest.fixture
+def setup_mocks(mocker):
+    def setup(
+        disable_dispatch: bool,
+        in_req_res_cycle: bool
+    ):
+        if disable_dispatch:
+            mocker.patch.dict(os.environ, {"FASTAPI_EVENTS_DISABLE_DISPATCH": "1"})
+
+        mocker.patch("fastapi_events.dispatcher.in_req_res_cycle").get.return_value = in_req_res_cycle
+
+        spy_event_store_ctx_var = mocker.spy(dispatcher_module, "event_store")
+
+        return locals()
+
+    return setup
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "suppress_events",
     (True,
      False))
-def test_suppression_of_events(
-    suppress_events, mocker,
+async def test_suppression_of_events(
+    suppress_events, setup_mocks,
 ):
     """
     Test if dispatch() can be disabled properly with
@@ -25,30 +44,30 @@ def test_suppression_of_events(
 
     It should be enabled by default.
     """
-    if suppress_events:
-        mocker.patch.dict(os.environ, {"FASTAPI_EVENTS_DISABLE_DISPATCH": "1"})
-
-    spy_event_store_ctx_var = mocker.spy(dispatcher_module, "event_store")
+    mocks = setup_mocks(disable_dispatch=suppress_events,
+                        in_req_res_cycle=True)
 
     dispatch("TEST_EVENT")
 
-    assert spy_event_store_ctx_var.get.called != suppress_events
+    assert mocks["spy_event_store_ctx_var"].get.called != suppress_events
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "event_payload,should_raise_error",
     (({"user_id": uuid.uuid4(), "created_at": datetime.utcnow()}, False),
      ({"user_id": uuid.uuid4()}, True),
      ({}, True),
      (None, True)))
-def test_payload_validation_with_pydantic(
-    event_payload, should_raise_error, mocker
+async def test_payload_validation_with_pydantic_in_req_res_cycle(
+    event_payload, should_raise_error, setup_mocks
 ):
     """
     Test if event payloads are properly validated when a payload schema is registered.
     """
     payload_schema = EventPayloadSchemaRegistry()
-    spy_event_store_ctx_var = mocker.spy(dispatcher_module, "event_store")
+    mocks = setup_mocks(disable_dispatch=False,
+                        in_req_res_cycle=True)
 
     class UserEvents(Enum):
         SIGNED_UP = "USER_SIGNED_UP"
@@ -69,17 +88,19 @@ def test_payload_validation_with_pydantic(
 
     else:
         dispatch_fn()
-        assert spy_event_store_ctx_var.get.called
+        assert mocks["spy_event_store_ctx_var"].get.called
 
 
-def test_dispatching_without_payload_schema(
-    mocker
+@pytest.mark.asyncio
+async def test_dispatching_without_payload_schema_in_req_res_cycle(
+    setup_mocks
 ):
     """
     Test if dispatch() works fine when no payload schema is registered
     """
-    spy_event_store_ctx_var = mocker.spy(dispatcher_module, "event_store")
+    mocks = setup_mocks(disable_dispatch=False,
+                        in_req_res_cycle=True)
 
     dispatch("TEST_EVENT", {"id": uuid.uuid4()})
 
-    assert spy_event_store_ctx_var.get.called
+    assert mocks["spy_event_store_ctx_var"].get.called
