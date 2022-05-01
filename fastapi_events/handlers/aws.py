@@ -1,4 +1,3 @@
-import json
 import uuid
 from typing import Callable, Iterable
 
@@ -6,16 +5,13 @@ import boto3
 
 from fastapi_events.errors import ConfigurationError
 from fastapi_events.handlers.base import BaseEventHandler
+from fastapi_events.serializers import json_serializer
 from fastapi_events.typing import Event
 from fastapi_events.utils import chunk
 
 
 def _uuid4_generator(_: Event) -> str:
     return str(uuid.uuid4())
-
-
-def _json_serializer(event: Event) -> str:
-    return json.dumps(event, default=str)
 
 
 class SQSForwardHandler(BaseEventHandler):
@@ -45,7 +41,7 @@ class SQSForwardHandler(BaseEventHandler):
         self._max_batch_size = max_batch_size
 
         self._client = boto3.client('sqs', region_name=self._region_name, **boto_client_kwargs)
-        self._serializer = serializer or _json_serializer
+        self._serializer = serializer or json_serializer
         self._id_generator = id_generator or _uuid4_generator
 
     async def handle_many(self, events: Iterable[Event]) -> None:

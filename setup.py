@@ -57,6 +57,9 @@ setuptools.setup(
         ],
         "aws": [
             "boto3>=1.14"
+        ],
+        "rabbitmq": [
+            "aio-pika>=6.6,<7.0"
         ]
     }
 )
