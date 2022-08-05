@@ -21,7 +21,7 @@ def setup_test() -> Callable:
 
         @app.route("/events")
         async def root(request: Request) -> JSONResponse:
-            dispatch(event_name=request.query_params.get("event"))
+            dispatch(event_name=request.query_params["event"])
             return JSONResponse([])
 
         return app, handler

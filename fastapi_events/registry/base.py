@@ -1,14 +1,15 @@
 import logging
 from abc import ABCMeta
 from collections import UserDict
+from typing import Optional, Type
 
 logger = logging.getLogger(__name__)
 
+BaseModel: Optional[Type] = None
 try:
     from pydantic import BaseModel
 except ImportError:
     logger.warning("Pydantic is required to use schema registry")
-    BaseModel = None
 
 
 class BaseEventPayloadSchemaRegistry(UserDict, metaclass=ABCMeta):
