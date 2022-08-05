@@ -26,6 +26,7 @@ setuptools.setup(
     long_description_content_type="text/markdown",
     url="https://github.com/melvinkcx/fastapi-events",
     packages=setuptools.find_packages(exclude=["tests.*"]),
+    package_data={"fastapi_events": ["py.typed"]},
     classifiers={
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
@@ -51,6 +52,8 @@ setuptools.setup(
             "pytest-asyncio>=0.18.3",
             "pytest-env>=0.6.2",
             "pytest-mock>=3.6.1",
+            "mypy>=0.971",
+            "pytest-mypy>=0.9.1",
             "moto[sqs]==2.2",
             "flake8>=3.9.2",
             "pydantic>=1.5.0"
