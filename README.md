@@ -277,6 +277,54 @@ Comparison between events dispatched within the request-response cycle and event
 | supports payload schema validation with Pydantic                | Yes                                              | Yes                                                     |
 | can be disabled globally with `FASTAPI_EVENTS_DISABLE_DISPATCH` | Yes                                              | Yes                                                     |
 
+## 4) Dispatching events outside of a request
+
+One goal of `fastapi-events` is to dispatch events without having to manage which instance of `EventHandlerASGIMiddleware` is being targeted. By default, this is handled using `ContextVars`. There are occasions when a user may want to dispatch events outside of the standard request sequence though. This can be accomplished by generating a custom identifier for the middleware.
+
+By default, the middleware identifier is generated from the object id of the `EventHandlerASGIMiddleware` instance and is managed internally without need for user intervention. If the user needs to dispatch events outside of a request-response lifecycle, a custom `middleware_id` value can be generated and passed to `EventHandlerASGIMiddleware` during its creation. This value can then be used with `dispatch()` to ensure the correct `EventHandlerASGIMiddleware` instance is selected.
+
+Dispatching events during a request does ***not*** require the `middleware_id`. These will continue to automatically discover the event handler.
+
+In the following example, the id is being generated using the object id of the `FastAPI` instance. The middleware identifier must be unique `int` but there are no other restrictions.
+
+```python
+import asyncio
+
+from fastapi import FastAPI
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
+
+from fastapi_events.dispatcher import dispatch
+from fastapi_events.middleware import EventHandlerASGIMiddleware
+from fastapi_events.handlers.local import local_handler
+
+
+app = FastAPI()
+event_handler_id: int = id(app)
+app.add_middleware(EventHandlerASGIMiddleware,
+                           handlers=[local_handler],  # registering handler(s)
+                           middleware_id=event_handler_id)  # register custom middleware id
+
+
+async def dispatch_task() -> None:
+    """ background task to dispatch autonomous events """
+
+    for i in range(100):
+        # without the middleware_id, this call would raise a LookupError
+        dispatch("date", payload={"idx": i}, middleware_id=event_handler_id)
+        await asyncio.sleep(1)
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    asyncio.create_task(dispatch_task())
+
+
+@app.get("/")
+def index(request: Request) -> JSONResponse:
+    dispatch("hello", payload={"id": 1})  # Emit events anywhere in your code
+    return JSONResponse({"detail": {"msg": "hello world"}})
+```
 
 # FAQs:
 
@@ -292,6 +340,8 @@ Comparison between events dispatched within the request-response cycle and event
    `dispatch()` relies on [ContextVars](https://docs.python.org/3/library/contextvars.html) to work properly. There are
    many reasons why `LookupError` can occur. A common reason is `dispatch()` is called outside the request-response
    lifecycle of FastAPI/Starlette, such as calling `dispatch()` after a response has been returned.
+
+   [This can be worked around by using a user-defined middleware_id.](#4-dispatching-events-outside-of-a-request)
 
    If you're getting this during testing, you may consider disabling `dispatch()` during testing.
    See [Suppressing Events / Disabling `dispatch()` Globally](#suppressing-events--disabling-dispatch-globally) for
