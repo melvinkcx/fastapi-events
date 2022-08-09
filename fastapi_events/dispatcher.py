@@ -1,7 +1,9 @@
 import asyncio
+import contextlib
 import os
+from contextvars import Token
 from enum import Enum
-from typing import Any, Deque, Dict, Iterable, Optional, Union
+from typing import Any, Deque, Dict, Iterable, Iterator, Optional, Union
 
 from fastapi_events import (BaseEventHandler, event_store, handler_store,
                             in_req_res_cycle, middleware_identifier)
@@ -61,12 +63,22 @@ def _dispatch(event_name: Union[str, Enum], payload: Optional[Any] = None) -> No
         _dispatch_as_task(event_name, payload)
 
 
+@contextlib.contextmanager
+def _set_middleware_identifier(middleware_id: int) -> Iterator[None]:
+    token_middleware_id: Token = middleware_identifier.set(middleware_id)
+    try:
+        yield
+    finally:
+        middleware_identifier.reset(token_middleware_id)
+
+
 def dispatch(
     event_name: Union[str, Enum],
     payload: Optional[Any] = None,
     validate_payload: bool = True,
     payload_schema_cls_dict_args: Optional[Dict[str, Any]] = None,
-    payload_schema_registry: Optional[BaseEventPayloadSchemaRegistry] = None
+    payload_schema_registry: Optional[BaseEventPayloadSchemaRegistry] = None,
+    middleware_id: Optional[int] = None
 ) -> None:
     """
     A wrapper of the main dispatcher function with additional checks.
@@ -91,4 +103,8 @@ def dispatch(
             payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
             payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
 
-    return _dispatch(event_name=event_name, payload=payload)
+    if middleware_id:
+        with _set_middleware_identifier(middleware_id):
+            return _dispatch(event_name=event_name, payload=payload)
+    else:
+        return _dispatch(event_name=event_name, payload=payload)

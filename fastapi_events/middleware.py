@@ -3,7 +3,7 @@ import contextlib
 import logging
 from collections import deque
 from contextvars import Token
-from typing import Deque, Iterable, Iterator
+from typing import Deque, Iterable, Iterator, Optional
 
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -16,9 +16,9 @@ logger = logging.getLogger(__name__)
 
 
 class EventHandlerASGIMiddleware:
-    def __init__(self, app: ASGIApp, handlers: Iterable[BaseEventHandler]) -> None:
+    def __init__(self, app: ASGIApp, handlers: Iterable[BaseEventHandler], middleware_id: Optional[int] = None) -> None:
         self.app = app
-        self._id = id(self)
+        self._id = id(self) if middleware_id is None else middleware_id
         self.register_handlers(handlers=handlers)
 
     def __del__(self):

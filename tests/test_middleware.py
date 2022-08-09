@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import suppress
 
 import pytest
@@ -63,3 +64,43 @@ def test_event_handling(
         client.get("/")
 
     assert len(dummy_handler_1.event_processed) == len(dummy_handler_2.event_processed) == 5
+
+
+@pytest.mark.parametrize(
+    "middleware_id",
+    ((None),
+     (1234),
+     (1337))
+)
+@pytest.mark.asyncio
+async def test_event_handling_without_request(middleware_id):
+    """
+    Making sure events are handled when dispatched with an explicit middleware_id
+    """
+
+    class DummyHandler(BaseEventHandler):
+        def __init__(self):
+            self.event_processed = []
+
+        async def handle(self, event: Event) -> None:
+            self.event_processed.append(event)
+
+    dummy_handler_1 = DummyHandler()
+    dummy_handler_2 = DummyHandler()
+
+    _ = Starlette(middleware=[
+        Middleware(EventHandlerASGIMiddleware,
+                   handlers=[dummy_handler_1, dummy_handler_2],
+                   middleware_id=middleware_id)])
+
+    if middleware_id is None:
+        with pytest.raises(LookupError, match=r"^<ContextVar name='fastapi_middleware_identifier' at"):
+            dispatch(event_name="new event", payload={"id": "fail"}, middleware_id=middleware_id)
+    else:
+        for idx in range(5):
+            dispatch(event_name="new event", payload={"id": idx + 1}, middleware_id=middleware_id)
+
+        # allow time for events to be dispatched
+        await asyncio.sleep(0.1)
+
+        assert len(dummy_handler_1.event_processed) == len(dummy_handler_2.event_processed) == 5
