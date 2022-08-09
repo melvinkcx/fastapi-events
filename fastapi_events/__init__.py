@@ -1,10 +1,10 @@
 from collections import defaultdict
 from contextvars import ContextVar
-from typing import Dict, Iterable
 
 from fastapi_events.handlers.base import BaseEventHandler
+from typing import Dict, Iterable
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 # handlers keeps track of all handlers registered via EventHandlerASGIMiddleware
 handler_store: Dict[int, Iterable[BaseEventHandler]] = defaultdict(list)
