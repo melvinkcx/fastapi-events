@@ -60,6 +60,9 @@ setuptools.setup(
         ],
         "aws": [
             "boto3>=1.14"
+        ],
+        "google-cloud-pubsub": [
+            "google-cloud-pubsub>=2.13.4,<3.0"
         ]
     }
 )
