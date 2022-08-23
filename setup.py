@@ -57,9 +57,8 @@ setuptools.setup(
             "moto[sqs]==2.2",
             "flake8>=3.9.2",
             "pydantic>=1.5.0",
-            "testcontainers>=3.5.0",
         ],
         "aws": ["boto3>=1.14"],
-        "google-cloud-pubsub": ["google-cloud-pubsub<2"],
+        "google": ["google-cloud-pubsub>=2.13.6"],
     },
 )
