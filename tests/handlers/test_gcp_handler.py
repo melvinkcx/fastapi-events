@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
 
 from fastapi_events.dispatcher import dispatch
-from fastapi_events.handlers.gcp import GoogleCloudPubSubHandler
+from fastapi_events.handlers.gcp import GoogleCloudSimplePubSubHandler
 from fastapi_events.middleware import EventHandlerASGIMiddleware
 
 
@@ -23,8 +23,10 @@ def test_gcp_pubsub_handler(mock_publisher_client: Mock):
                 Middleware(
                     EventHandlerASGIMiddleware,
                     handlers=[
-                        GoogleCloudPubSubHandler(
-                            project_id=project_id, topic_id=topic_id
+                        GoogleCloudSimplePubSubHandler(
+                            project_id=project_id,
+                            topic_id=topic_id,
+                            batch_settings_kwargs={"max_latency": 1},
                         )
                     ],
                 )

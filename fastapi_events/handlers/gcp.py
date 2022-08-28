@@ -1,5 +1,5 @@
 import json
-from typing import Callable, Iterable
+from typing import Any, Callable, Dict, Iterable
 
 from google.cloud import pubsub_v1
 
@@ -12,14 +12,16 @@ def _json_serializer(event: Event) -> str:
     return json.dumps(event, default=str)
 
 
-class GoogleCloudPubSubHandler(BaseEventHandler):
+class GoogleCloudSimplePubSubHandler(BaseEventHandler):
     def __init__(
         self,
         project_id: str,
         topic_id: str,
         max_batch_size: int = 1000,  # GCP Pubsub's maximum supported batch size
+        batch_settings_kwargs: Dict[str, Any] = None,
         serializer: Callable[[Event], str] = None,
     ) -> None:
+        """Google cloud simple PubSub handler. Publishes events to a single topic."""
 
         if max_batch_size > 1000:
             raise ConfigurationError("GCP Pubsub batch size limit is 1000.")
@@ -32,7 +34,7 @@ class GoogleCloudPubSubHandler(BaseEventHandler):
         # Publish messages as soon as there are max_messages
         # or 1 second is passed
         self._batch_settings = pubsub_v1.types.BatchSettings(
-            max_messages=self._max_batch_size, max_latency=1
+            max_messages=self._max_batch_size, **batch_settings_kwargs
         )
         self._client = pubsub_v1.PublisherClient(self._batch_settings)
         self._serializer = serializer or _json_serializer
