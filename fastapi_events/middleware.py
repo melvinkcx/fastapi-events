@@ -23,9 +23,10 @@ class EventHandlerASGIMiddleware:
 
     def __del__(self):
         """
-        Removing handlers after middleware is necessary as `self._id` is generated with the built-in `id()`
+        Removing handlers after middleware is necessary when `self._id` == `id(self)`
         """
-        self.deregister_handlers()
+        if self._id == id(self):
+            self.deregister_handlers()
 
     def register_handlers(self, handlers: Iterable[BaseEventHandler]) -> None:
         handler_store[self._id] = handlers
