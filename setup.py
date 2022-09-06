@@ -4,11 +4,13 @@ import setuptools
 
 
 def get_version():
-    package_init = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'fastapi_events', '__init__.py')
+    package_init = os.path.join(
+        os.path.abspath(os.path.dirname(__file__)), "fastapi_events", "__init__.py"
+    )
     with open(package_init) as f:
         for line in f:
-            if line.startswith('__version__ ='):
-                return line.split('=')[1].strip().strip('"\'')
+            if line.startswith("__version__ ="):
+                return line.split("=")[1].strip().strip("\"'")
 
 
 def get_long_description():
@@ -40,11 +42,9 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     },
-    python_requires='>=3.7',
+    python_requires=">=3.7",
     keywords=["starlette", "fastapi", "pydantic"],
-    install_requires=[
-        "starlette"
-    ],
+    install_requires=["starlette"],
     extras_require={
         "test": [
             "requests",
@@ -56,10 +56,10 @@ setuptools.setup(
             "pytest-mypy>=0.9.1",
             "moto[sqs]==2.2",
             "flake8>=3.9.2",
-            "pydantic>=1.5.0"
+            "pydantic>=1.5.0",
+            "google-cloud-pubsub>=2.13.6",
         ],
-        "aws": [
-            "boto3>=1.14"
-        ]
-    }
+        "aws": ["boto3>=1.14"],
+        "google": ["google-cloud-pubsub>=2.13.6"],
+    },
 )

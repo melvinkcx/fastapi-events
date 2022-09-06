@@ -214,6 +214,10 @@ Here is a list of built-in event handlers:
     * import from `fastapi_events.handlers.echo`
     * to forward events to stdout with `pprint`. Great for debugging purpose
 
+* `GoogleCloudSimplePubSubHandler`:
+    * import from `fastapi_events.handlers.gcp`
+    * to publish events to a single pubsub topic
+
 # Creating your own handler
 
 Creating your own handler is nothing more than inheriting from the `BaseEventHandler` class
