@@ -27,6 +27,13 @@ To use it with AWS handlers, install:
 pip install fastapi-events[aws]
 ```
 
+To use it with GCP handlers. install:
+
+```shell
+pip install fastapi-events[google]
+```
+
+
 # Usage
 
 `fastapi-events` supports both FastAPI and Starlette. To use it, simply configure it as middleware.
