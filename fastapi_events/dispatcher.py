@@ -3,6 +3,9 @@ import contextlib
 import os
 from contextvars import Token
 from enum import Enum
+
+from fastapi_events.otel import trace
+from fastapi_events.otel.trace import SpanKind
 from typing import Any, Deque, Dict, Iterable, Iterator, Optional, Union
 
 from fastapi_events import (BaseEventHandler, event_store, handler_store,
@@ -92,19 +95,24 @@ def dispatch(
         3.1. if so, append the event into the event_store context var
         3.2. if not, create a Task to handle the event with handlers registered
     """
+    tracer = trace.get_tracer(__name__)
 
-    # Validate event payload with schema registered
-    if HAS_PYDANTIC and validate_payload:
-        if not payload_schema_registry:
-            payload_schema_registry = default_payload_schema_registry
+    with tracer.start_as_current_span(
+        f"Event {event_name} dispatched",
+        kind=SpanKind.PRODUCER
+    ):
+        # Validate event payload with schema registered
+        if HAS_PYDANTIC and validate_payload:
+            if not payload_schema_registry:
+                payload_schema_registry = default_payload_schema_registry
 
-        payload_schema_cls = payload_schema_registry.get(event_name)
-        if payload_schema_cls:
-            payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
-            payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
+            payload_schema_cls = payload_schema_registry.get(event_name)
+            if payload_schema_cls:
+                payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
+                payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
 
-    if middleware_id:
-        with _set_middleware_identifier(middleware_id):
+        if middleware_id:
+            with _set_middleware_identifier(middleware_id):
+                return _dispatch(event_name=event_name, payload=payload)
+        else:
             return _dispatch(event_name=event_name, payload=payload)
-    else:
-        return _dispatch(event_name=event_name, payload=payload)
