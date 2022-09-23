@@ -9,7 +9,8 @@ from typing import Any, Deque, Dict, Iterable, Iterator, Optional, Union
 from fastapi_events import (BaseEventHandler, event_store, handler_store,
                             in_req_res_cycle, middleware_identifier)
 from fastapi_events.constants import FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR
-from fastapi_events.otel.utils import create_span_for_dispatch_fn, inject_traceparent
+from fastapi_events.otel.utils import (create_span_for_dispatch_fn,
+                                       inject_traceparent)
 from fastapi_events.registry.base import BaseEventPayloadSchemaRegistry
 from fastapi_events.registry.payload_schema import \
     registry as default_payload_schema_registry

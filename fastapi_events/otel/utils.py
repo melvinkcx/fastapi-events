@@ -6,7 +6,7 @@ from typing import Dict, Optional, Union
 
 from fastapi_events import BaseEventHandler
 from fastapi_events.constants import FASTAPI_EVENTS_USE_SPAN_LINKING_ENV_VAR
-from fastapi_events.otel import trace, propagate, HAS_OTEL_INSTALLED
+from fastapi_events.otel import HAS_OTEL_INSTALLED, propagate, trace
 from fastapi_events.utils import strtobool
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def create_span_for_handle_fn(
     use_span_linking: bool = USE_SPAN_LINKING_DEFAULT_VALUE
 ):
     if not HAS_OTEL_INSTALLED:
-        logger.debug(f"Unable to create span. OTEL is not installed.")
+        logger.debug("Unable to create span. OTEL is not installed.")
         return empty_span()
 
     if not payload:
@@ -68,7 +68,7 @@ def create_span_for_dispatch_fn(
     event_name: Union[str, Enum],
 ):
     if not HAS_OTEL_INSTALLED:
-        logger.debug(f"Unable to create span. OTEL is not installed.")
+        logger.debug("Unable to create span. OTEL is not installed.")
         return empty_span()
 
     tracer = trace.get_tracer("fastapi_events.dispatcher")
@@ -79,7 +79,7 @@ def create_span_for_dispatch_fn(
 
 def inject_traceparent(payload: Dict):
     if not HAS_OTEL_INSTALLED:
-        logger.debug(f"Unable to inject traceparent. OTEL is not installed.")
+        logger.debug("Unable to inject traceparent. OTEL is not installed.")
         return
 
     if not isinstance(payload, dict):
