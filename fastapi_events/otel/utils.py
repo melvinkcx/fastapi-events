@@ -7,6 +7,7 @@ from typing import Dict, Optional, Union
 from fastapi_events import BaseEventHandler
 from fastapi_events.constants import FASTAPI_EVENTS_USE_SPAN_LINKING_ENV_VAR
 from fastapi_events.otel import HAS_OTEL_INSTALLED, propagate, trace
+from fastapi_events.otel.attributes import SpanAttributes
 from fastapi_events.utils import strtobool
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ def create_span_for_handle_fn(
         logger.debug("Unable to create span. OTEL is not installed.")
         return empty_span()
 
-    if not payload:
+    if payload is None:
         logger.debug(f"Unable to create span for event {event_name} without payload.")
         return empty_span()
 

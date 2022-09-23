@@ -16,6 +16,10 @@ from fastapi_events.dispatcher import dispatch
 from fastapi_events.registry.payload_schema import EventPayloadSchemaRegistry
 from fastapi_events.typing import Event
 
+pytest_plugins = (
+    "tests.fixtures.otel",
+)
+
 
 @pytest.fixture
 def setup_mocks_for_events_in_req_res_cycle(mocker):
@@ -187,3 +191,18 @@ async def test_dispatching_outside_req_res_cycle(
 
     assert mocks["spy__dispatch_as_task"].spy_return.done()
     assert handler.is_handled
+
+
+@pytest.mark.asyncio
+async def test_otel_support(
+    otel_test_manager, setup_mocks_for_events_in_req_res_cycle
+):
+    """
+    Test if OTEL span is properly created when dispatch() is called
+    """
+    setup_mocks_for_events_in_req_res_cycle(disable_dispatch=True)
+
+    dispatch("TEST_EVENT")
+
+    spans_created = otel_test_manager.get_finished_spans()
+    assert spans_created[0].name == "Event TEST_EVENT dispatched"

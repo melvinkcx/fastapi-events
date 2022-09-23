@@ -12,6 +12,10 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
 
+pytest_plugins = (
+    "tests.fixtures.otel",
+)
+
 
 @pytest.fixture
 def setup_test() -> Callable:
@@ -21,7 +25,8 @@ def setup_test() -> Callable:
 
         @app.route("/events")
         async def root(request: Request) -> JSONResponse:
-            dispatch(event_name=request.query_params["event"])
+            dispatch(event_name=request.query_params["event"],
+                     payload={})
             return JSONResponse([])
 
         return app, handler
@@ -145,3 +150,20 @@ def test_chain_registration_of_local_handler(
         client.get(f"/events?event={event}")
 
     assert tuple(event for event, _ in events_handled) == all_events
+
+
+def test_otel_support(
+    otel_test_manager, setup_test
+
+):
+    app, handler = setup_test()
+
+    @handler.register(event_name="TEST_EVENT")
+    async def handle_events(event: Event):
+        ...
+
+    client = TestClient(app)
+    client.get(f"/events?event=TEST_EVENT")
+
+    spans_created = otel_test_manager.get_finished_spans()
+    assert spans_created[-1].name == "handling event TEST_EVENT with LocalHandler"

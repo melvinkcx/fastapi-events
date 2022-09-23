@@ -58,7 +58,8 @@ setuptools.setup(
             "flake8>=3.9.2",
             "pydantic>=1.5.0",
             "google-cloud-pubsub>=2.13.6",
-            "opentelemetry-sdk>=1.12.0"
+            "opentelemetry-sdk>=1.12.0",
+            "opentelemetry-test-utils>=0.33b0"
         ],
         "aws": ["boto3>=1.14"],
         "google": ["google-cloud-pubsub>=2.13.6"],
