@@ -154,8 +154,10 @@ def test_chain_registration_of_local_handler(
 
 def test_otel_support(
     otel_test_manager, setup_test
-
 ):
+    """
+    Test if OTEL span is properly created when the event is handled
+    """
     app, handler = setup_test()
 
     @handler.register(event_name="TEST_EVENT")

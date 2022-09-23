@@ -7,7 +7,6 @@ from typing import Dict, Optional, Union
 from fastapi_events import BaseEventHandler
 from fastapi_events.constants import FASTAPI_EVENTS_USE_SPAN_LINKING_ENV_VAR
 from fastapi_events.otel import HAS_OTEL_INSTALLED, propagate, trace
-from fastapi_events.otel.attributes import SpanAttributes
 from fastapi_events.utils import strtobool
 
 logger = logging.getLogger(__name__)
