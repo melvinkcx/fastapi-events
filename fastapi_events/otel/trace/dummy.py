@@ -1,6 +1,5 @@
 from contextlib import contextmanager
 from enum import Enum
-from typing import Iterator
 
 
 class SpanKind(Enum):
@@ -11,23 +10,25 @@ class SpanKind(Enum):
     CONSUMER = 4
 
 
-class DummyTracer:
+class Tracer:
     """
     Partial interface of `opentelemetry.trace.Tracer`
+    TODO make this a singleton
     """
 
     @contextmanager
-    def start_span(self, *args, **kwargs) -> "DummySpan":
-        yield DummySpan()
+    def start_span(self, *args, **kwargs):
+        yield Span()
 
     @contextmanager
-    def start_as_current_span(self, *args, **kwargs) -> Iterator["DummySpan"]:
-        yield DummySpan()
+    def start_as_current_span(self, *args, **kwargs):
+        yield Span()
 
 
-class DummySpan:
+class Span:
     """
     Partial interface of `opentelemetry.trace.Span`
+    TODO make this a singleton
     """
 
     def set_attributes(self, attributes) -> None:

@@ -1,3 +1,4 @@
+# flake8: noqa
 try:
     from opentelemetry import trace
     from opentelemetry.trace import *
@@ -13,4 +14,4 @@ def get_tracer(*args, **kwargs):
     if HAS_OTEL_INSTALLED:
         return trace.get_tracer(*args, **kwargs)
     else:
-        return DummyTracer()
+        return Tracer()

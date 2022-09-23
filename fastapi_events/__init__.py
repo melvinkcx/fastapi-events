@@ -1,8 +1,8 @@
 from collections import defaultdict
 from contextvars import ContextVar
+from typing import Dict, Iterable
 
 from fastapi_events.handlers.base import BaseEventHandler
-from typing import Dict, Iterable
 
 __version__ = "0.6.0"
 
