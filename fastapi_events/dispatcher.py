@@ -1,9 +1,11 @@
 import asyncio
 import contextlib
+import logging
 import os
 from contextvars import Token
 from enum import Enum
 
+from fastapi_events.constants import FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR
 from fastapi_events.otel import trace
 from fastapi_events.otel.trace import SpanKind
 from typing import Any, Deque, Dict, Iterable, Iterator, Optional, Union
@@ -24,6 +26,8 @@ except ImportError:
     HAS_PYDANTIC = False
 
 DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS = {"exclude_unset": True}
+
+logger = logging.getLogger(__name__)
 
 
 def _list_handlers() -> Iterable[BaseEventHandler]:
@@ -52,17 +56,24 @@ def _dispatch(event_name: Union[str, Enum], payload: Optional[Any] = None) -> No
     The main dispatcher function.
     - Setting FASTAPI_EVENTS_DISABLE_DISPATCH to any truthy value essentially disables event dispatching of all sorts
     """
-    DISABLE_DISPATCH_GLOBALLY = strtobool(os.environ.get("FASTAPI_EVENTS_DISABLE_DISPATCH", "0"))
+    DISABLE_DISPATCH_GLOBALLY = strtobool(os.environ.get(FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR, "0"))
 
     if DISABLE_DISPATCH_GLOBALLY:
+        logger.debug("Dispatch function is disabled globally. "
+                     "If you believe this is a mistake, "
+                     f"please make sure the environment variable '{FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR}' is not set.` ")
         return
 
     is_handling_request: bool = in_req_res_cycle.get()
     if is_handling_request:
+        logger.debug("Event dispatched within a request-response cycle. "
+                     "Enqueing event to event store...")
         q: Deque[Event] = event_store.get()
         q.append((event_name, payload))
 
     else:
+        logger.debug("Event is dispatched outside of a request-response cycle."
+                     "Dispatching event as an asyncio.Task...")
         _dispatch_as_task(event_name, payload)
 
 
@@ -103,6 +114,7 @@ def dispatch(
     ):
         # Validate event payload with schema registered
         if HAS_PYDANTIC and validate_payload:
+            logger.debug("Pydantic is enabled. Validating payload schema...")
             if not payload_schema_registry:
                 payload_schema_registry = default_payload_schema_registry
 
@@ -110,6 +122,8 @@ def dispatch(
             if payload_schema_cls:
                 payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
                 payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
+            else:
+                logger.debug(f"Payload schema for event {event_name} not found. Skipping validation...")
 
         if middleware_id:
             with _set_middleware_identifier(middleware_id):
