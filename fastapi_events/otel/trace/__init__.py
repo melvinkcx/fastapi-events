@@ -1,17 +1,11 @@
-# flake8: noqa
+from fastapi_events.otel import HAS_OTEL_INSTALLED
+
 try:
-    from opentelemetry import trace
-    from opentelemetry.trace import *
-
-    HAS_OTEL_INSTALLED = True
+    from opentelemetry import trace  # type: ignore
 except ImportError:
-    from fastapi_events.otel.trace.dummy import *
+    from fastapi_events.otel.trace import dummy
 
-    HAS_OTEL_INSTALLED = False
-
-
-def get_tracer(*args, **kwargs):
-    if HAS_OTEL_INSTALLED:
-        return trace.get_tracer(*args, **kwargs)
-    else:
-        return Tracer()
+if HAS_OTEL_INSTALLED:
+    get_tracer = trace.get_tracer
+else:
+    get_tracer = dummy.Tracer()

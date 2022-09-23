@@ -9,8 +9,7 @@ from typing import Any, Deque, Dict, Iterable, Iterator, Optional, Union
 from fastapi_events import (BaseEventHandler, event_store, handler_store,
                             in_req_res_cycle, middleware_identifier)
 from fastapi_events.constants import FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR
-from fastapi_events.otel import trace
-from fastapi_events.otel.trace import SpanKind
+from fastapi_events.otel.utils import create_span_for_dispatch_fn, inject_traceparent
 from fastapi_events.registry.base import BaseEventPayloadSchemaRegistry
 from fastapi_events.registry.payload_schema import \
     registry as default_payload_schema_registry
@@ -105,12 +104,7 @@ def dispatch(
         3.1. if so, append the event into the event_store context var
         3.2. if not, create a Task to handle the event with handlers registered
     """
-    tracer = trace.get_tracer(__name__)
-
-    with tracer.start_as_current_span(
-        f"Event {event_name} dispatched",
-        kind=SpanKind.PRODUCER
-    ):
+    with create_span_for_dispatch_fn(event_name=event_name):
         # Validate event payload with schema registered
         if HAS_PYDANTIC and validate_payload:
             logger.debug("Pydantic is enabled. Validating payload schema...")
@@ -123,6 +117,10 @@ def dispatch(
                 payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
             else:
                 logger.debug(f"Payload schema for event {event_name} not found. Skipping validation...")
+
+        if payload and isinstance(payload, dict):
+            logger.debug("Injecting traceparent to event payload...")
+            inject_traceparent(payload=payload)
 
         if middleware_id:
             with _set_middleware_identifier(middleware_id):

@@ -1,0 +1,6 @@
+def extract(*args, **kwargs):
+    ...
+
+
+def inject(*args, **kwargs):
+    ...
