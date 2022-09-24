@@ -13,7 +13,9 @@ Features:
 * coroutine functions (`async def`) are the first-class citizen
 * write your handlers, never be limited to just what `fastapi_events` provides
 * (__>=0.3.0__) supports event payload validation via Pydantic (See [here](#event-payload-validation-with-pydantic))
-* (__>=0.4.0__) supports event chaining: dispatching events within handlers (thank [@ndopj](https://github.com/ndopj) for contributing to the idea)
+* (__>=0.4.0__) supports event chaining: dispatching events within handlers (thank [@ndopj](https://github.com/ndopj)
+  for contributing to the idea)
+* (__>=0.7.0__) supports OpenTelemetry: see [this section](#opentelemetry-otel-support) for details
 
 ## Installation
 
@@ -33,6 +35,11 @@ To use it with GCP handlers. install:
 pip install fastapi-events[google]
 ```
 
+To enable OpenTelemetry (OTEL) support, install:
+
+```shell
+pip install fastapi-events[otel]
+```
 
 # Usage
 
@@ -260,6 +267,25 @@ class MyOwnEventHandler(BaseEventHandler):
         pass
 ```
 
+# OpenTelemetry (OTEL) support
+
+Since version 0.7.0, OpenTelemetry support has been added as an optional feature.
+
+To enable it, make sure you install the optional modules:
+
+```shell
+pip install fastapi-events[otel]
+```
+
+> Note that no instrumentation library is needed as fastapi_events supports OTEL natively
+
+Spans will be created when:
+
+* `fastapi_events.dispatcher.dispatch` is invoked,
+* `fastapi_events.handlers.local.LocalHandler` is handling an event
+
+Support for other handlers will be added in the future.
+
 # Cookbook
 
 ## 1) Suppressing Events / Disabling `dispatch()` Globally
@@ -277,7 +303,7 @@ See [Event Payload Validation With Pydantic](#event-payload-validation-with-pyda
 
 ## 3) Dispatching events within handlers (Event Chaining)
 
-It is now possible to dispatch events within another event handlers. You'll need version 0.4 or above. 
+It is now possible to dispatch events within another event handlers. You'll need version 0.4 or above.
 
 Comparison between events dispatched within the request-response cycle and event handlers are:
 
@@ -290,13 +316,22 @@ Comparison between events dispatched within the request-response cycle and event
 
 ## 4) Dispatching events outside of a request
 
-One goal of `fastapi-events` is to dispatch events without having to manage which instance of `EventHandlerASGIMiddleware` is being targeted. By default, this is handled using `ContextVars`. There are occasions when a user may want to dispatch events outside of the standard request sequence though. This can be accomplished by generating a custom identifier for the middleware.
+One goal of `fastapi-events` is to dispatch events without having to manage which instance
+of `EventHandlerASGIMiddleware` is being targeted. By default, this is handled using `ContextVars`. There are occasions
+when a user may want to dispatch events outside of the standard request sequence though. This can be accomplished by
+generating a custom identifier for the middleware.
 
-By default, the middleware identifier is generated from the object id of the `EventHandlerASGIMiddleware` instance and is managed internally without need for user intervention. If the user needs to dispatch events outside of a request-response lifecycle, a custom `middleware_id` value can be generated and passed to `EventHandlerASGIMiddleware` during its creation. This value can then be used with `dispatch()` to ensure the correct `EventHandlerASGIMiddleware` instance is selected.
+By default, the middleware identifier is generated from the object id of the `EventHandlerASGIMiddleware` instance and
+is managed internally without need for user intervention. If the user needs to dispatch events outside of a
+request-response lifecycle, a custom `middleware_id` value can be generated and passed to `EventHandlerASGIMiddleware`
+during its creation. This value can then be used with `dispatch()` to ensure the correct `EventHandlerASGIMiddleware`
+instance is selected.
 
-Dispatching events during a request does ***not*** require the `middleware_id`. These will continue to automatically discover the event handler.
+Dispatching events during a request does ***not*** require the `middleware_id`. These will continue to automatically
+discover the event handler.
 
-In the following example, the id is being generated using the object id of the `FastAPI` instance. The middleware identifier must be unique `int` but there are no other restrictions.
+In the following example, the id is being generated using the object id of the `FastAPI` instance. The middleware
+identifier must be unique `int` but there are no other restrictions.
 
 ```python
 import asyncio
@@ -309,12 +344,11 @@ from fastapi_events.dispatcher import dispatch
 from fastapi_events.middleware import EventHandlerASGIMiddleware
 from fastapi_events.handlers.local import local_handler
 
-
 app = FastAPI()
 event_handler_id: int = id(app)
 app.add_middleware(EventHandlerASGIMiddleware,
-                           handlers=[local_handler],  # registering handler(s)
-                           middleware_id=event_handler_id)  # register custom middleware id
+                   handlers=[local_handler],  # registering handler(s)
+                   middleware_id=event_handler_id)  # register custom middleware id
 
 
 async def dispatch_task() -> None:

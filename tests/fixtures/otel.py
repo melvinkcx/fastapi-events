@@ -1,5 +1,4 @@
 import pytest
-
 from opentelemetry.test.test_base import TestBase as OTELTestManager
 
 

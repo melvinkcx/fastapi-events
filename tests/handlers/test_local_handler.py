@@ -1,17 +1,18 @@
 from enum import Enum
-from typing import Tuple, Callable
+from typing import Callable, Tuple
 
 import pytest
-from fastapi_events.dispatcher import dispatch
-from fastapi_events.handlers.local import LocalHandler
-from fastapi_events.middleware import EventHandlerASGIMiddleware
-from fastapi_events.otel.attributes import SpanAttributes
-from fastapi_events.typing import Event
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
+
+from fastapi_events.dispatcher import dispatch
+from fastapi_events.handlers.local import LocalHandler
+from fastapi_events.middleware import EventHandlerASGIMiddleware
+from fastapi_events.otel.attributes import SpanAttributes
+from fastapi_events.typing import Event
 
 pytest_plugins = (
     "tests.fixtures.otel",
@@ -166,7 +167,7 @@ def test_otel_support(
         ...
 
     client = TestClient(app)
-    client.get(f"/events?event=TEST_EVENT")
+    client.get("/events?event=TEST_EVENT")
 
     spans_created = otel_test_manager.get_finished_spans()
     assert spans_created[-1].name == "handling event TEST_EVENT with LocalHandler"

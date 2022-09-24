@@ -20,9 +20,13 @@ jobs:
         run: |
           pip install -e .[test]
 
-      - name: Run linting
+      - name: Run linting (flake8)
         run: |
-          flake8 ./fastapi_events
+          flake8 ./fastapi_events ./tests
+
+      - name: Run linting (isort)
+        run: |
+          isort --check-only ./fastapi_events ./tests
 
       - name: Run tests
         run: |

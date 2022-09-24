@@ -1,13 +1,14 @@
 import boto3
-from fastapi_events.dispatcher import dispatch
-from fastapi_events.handlers.aws import SQSForwardHandler
-from fastapi_events.middleware import EventHandlerASGIMiddleware
 from moto import mock_sqs
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
+
+from fastapi_events.dispatcher import dispatch
+from fastapi_events.handlers.aws import SQSForwardHandler
+from fastapi_events.middleware import EventHandlerASGIMiddleware
 
 
 @mock_sqs

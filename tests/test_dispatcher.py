@@ -10,7 +10,7 @@ import pydantic
 import pytest
 
 import fastapi_events.dispatcher as dispatcher_module
-from fastapi_events import handler_store, BaseEventHandler
+from fastapi_events import BaseEventHandler, handler_store
 from fastapi_events.constants import FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR
 from fastapi_events.dispatcher import dispatch
 from fastapi_events.registry.payload_schema import EventPayloadSchemaRegistry
