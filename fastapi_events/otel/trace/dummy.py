@@ -30,9 +30,4 @@ class Span:
     Partial interface of `opentelemetry.trace.Span`
     TODO make this a singleton
     """
-
-    def set_attributes(self, attributes) -> None:
-        ...
-
-    def set_attribute(self, key, value) -> None:
-        ...
+    ...

@@ -1,11 +1,11 @@
 from fastapi_events.otel import HAS_OTEL_INSTALLED
 
-try:
+if HAS_OTEL_INSTALLED:
     from opentelemetry import trace  # type: ignore
-except ImportError:
+
+    get_tracer = trace.get_tracer
+
+else:
     from fastapi_events.otel.trace import dummy
 
-if HAS_OTEL_INSTALLED:
-    get_tracer = trace.get_tracer
-else:
     get_tracer = dummy.Tracer()
