@@ -1,6 +1,6 @@
 # flake8: noqa
 try:
-    from opentelemetry import trace, propagate  # type: ignore
+    from opentelemetry import propagate, trace  # type: ignore
 
     HAS_OTEL_INSTALLED = True
 except ImportError:
