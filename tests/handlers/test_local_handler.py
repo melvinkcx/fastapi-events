@@ -1,16 +1,22 @@
 from enum import Enum
-from typing import Tuple, Callable
+from typing import Callable, Tuple
 
 import pytest
-from fastapi_events.dispatcher import dispatch
-from fastapi_events.handlers.local import LocalHandler
-from fastapi_events.middleware import EventHandlerASGIMiddleware
-from fastapi_events.typing import Event
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
+
+from fastapi_events.dispatcher import dispatch
+from fastapi_events.handlers.local import LocalHandler
+from fastapi_events.middleware import EventHandlerASGIMiddleware
+from fastapi_events.otel.attributes import SpanAttributes
+from fastapi_events.typing import Event
+
+pytest_plugins = (
+    "tests.fixtures.otel",
+)
 
 
 @pytest.fixture
@@ -21,7 +27,8 @@ def setup_test() -> Callable:
 
         @app.route("/events")
         async def root(request: Request) -> JSONResponse:
-            dispatch(event_name=request.query_params["event"])
+            dispatch(event_name=request.query_params["event"],
+                     payload={})
             return JSONResponse([])
 
         return app, handler
@@ -145,3 +152,23 @@ def test_chain_registration_of_local_handler(
         client.get(f"/events?event={event}")
 
     assert tuple(event for event, _ in events_handled) == all_events
+
+
+def test_otel_support(
+    otel_test_manager, setup_test
+):
+    """
+    Test if OTEL span is properly created when the event is handled
+    """
+    app, handler = setup_test()
+
+    @handler.register(event_name="TEST_EVENT")
+    async def handle_events(event: Event):
+        ...
+
+    client = TestClient(app)
+    client.get("/events?event=TEST_EVENT")
+
+    spans_created = otel_test_manager.get_finished_spans()
+    assert spans_created[-1].name == "handling event TEST_EVENT with LocalHandler"
+    assert spans_created[-1].attributes[SpanAttributes.HANDLER] == "fastapi_events.handlers.local.LocalHandler"

@@ -4,6 +4,7 @@ import functools
 import inspect
 
 from fastapi_events.handlers.base import BaseEventHandler
+from fastapi_events.otel.utils import create_span_for_handle_fn
 from fastapi_events.typing import Event
 
 
@@ -22,13 +23,20 @@ class LocalHandler(BaseEventHandler):
         return _wrap(func=_func)
 
     async def handle(self, event: Event) -> None:
-        for handler in self._get_handlers_for_event(event_name=event[0]):
-            if inspect.iscoroutinefunction(handler):
-                await handler(event)
-            else:
-                # Making sure sync function will never block the event loop
-                loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, functools.partial(handler, event))
+        event_name, payload = event
+
+        with create_span_for_handle_fn(
+            handler_instance=self,
+            event_name=event_name,
+            payload=payload,
+        ):
+            for handler in self._get_handlers_for_event(event_name=event_name):
+                if inspect.iscoroutinefunction(handler):
+                    await handler(event)
+                else:
+                    # Making sure sync function will never block the event loop
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(None, functools.partial(handler, event))
 
     def _register_handler(self, event_name, func):
         if not isinstance(event_name, str):
