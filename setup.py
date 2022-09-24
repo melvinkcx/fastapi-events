@@ -56,6 +56,7 @@ setuptools.setup(
             "pytest-mypy>=0.9.1",
             "moto[sqs]==2.2",
             "flake8>=3.9.2",
+            "isort>=5.10.1",
             "pydantic>=1.5.0",
             "google-cloud-pubsub>=2.13.6",
             "opentelemetry-sdk>=1.12.0",
