@@ -34,7 +34,7 @@ def create_span_for_handle_fn(
         return empty_span()
 
     if payload is None:
-        logger.debug(f"Unable to create span for event {event_name} without payload.")
+        logger.debug("Unable to create span for event %s without payload.", event_name)
         return empty_span()
 
     links, context = [], None

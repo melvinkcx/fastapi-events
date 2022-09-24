@@ -60,7 +60,8 @@ def _dispatch(event_name: Union[str, Enum], payload: Optional[Any] = None) -> No
     if DISABLE_DISPATCH_GLOBALLY:
         logger.debug("Dispatch function is disabled globally. "
                      "If you believe this is a mistake, "
-                     f"please make sure the environment variable '{FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR}' is not set.` ")
+                     "please make sure the environment variable '%s' is not set.",
+                     FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR)
         return
 
     is_handling_request: bool = in_req_res_cycle.get()
@@ -117,7 +118,7 @@ def dispatch(
                 payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
                 payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
             else:
-                logger.debug(f"Payload schema for event {event_name} not found. Skipping validation...")
+                logger.debug("Payload schema for event %s not found. Skipping validation...", event_name)
 
         if payload and isinstance(payload, dict):
             logger.debug("Injecting traceparent to event payload...")
