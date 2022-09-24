@@ -7,6 +7,7 @@ from typing import Dict, Optional, Union
 from fastapi_events import BaseEventHandler
 from fastapi_events.constants import FASTAPI_EVENTS_USE_SPAN_LINKING_ENV_VAR
 from fastapi_events.otel import HAS_OTEL_INSTALLED, propagate, trace
+from fastapi_events.otel.attributes import SpanAttributes
 from fastapi_events.utils import strtobool
 
 logger = logging.getLogger(__name__)
@@ -55,13 +56,15 @@ def create_span_for_handle_fn(
         current_span = trace.get_current_span()
         links.append(trace.Link(context=current_span.get_span_context()))
 
+    handler_module = handler_instance.__class__.__module__
     handler_name = handler_instance.__class__.__name__
-    tracer = trace.get_tracer(handler_name.__class__.__module__)
+    tracer = trace.get_tracer(handler_module)
 
     return tracer.start_as_current_span(f"handling event {event_name} with {handler_name}",
                                         context=context,
                                         links=links,
-                                        kind=trace.SpanKind.CONSUMER)
+                                        kind=trace.SpanKind.CONSUMER,
+                                        attributes={SpanAttributes.HANDLER: f"{handler_module}.{handler_name}"})
 
 
 def create_span_for_dispatch_fn(

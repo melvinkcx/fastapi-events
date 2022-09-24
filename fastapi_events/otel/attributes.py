@@ -1,2 +1,2 @@
 class SpanAttributes:
-    HANDLER_NAME = "fastapi_events.handler"
+    HANDLER = "fastapi_events.handler"

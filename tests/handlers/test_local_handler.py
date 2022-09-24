@@ -5,6 +5,7 @@ import pytest
 from fastapi_events.dispatcher import dispatch
 from fastapi_events.handlers.local import LocalHandler
 from fastapi_events.middleware import EventHandlerASGIMiddleware
+from fastapi_events.otel.attributes import SpanAttributes
 from fastapi_events.typing import Event
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
@@ -169,3 +170,4 @@ def test_otel_support(
 
     spans_created = otel_test_manager.get_finished_spans()
     assert spans_created[-1].name == "handling event TEST_EVENT with LocalHandler"
+    assert spans_created[-1].attributes[SpanAttributes.HANDLER] == "fastapi_events.handlers.local.LocalHandler"
