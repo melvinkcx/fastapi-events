@@ -30,4 +30,4 @@ class Span:
     Partial interface of `opentelemetry.trace.Span`
     TODO make this a singleton
     """
-    ...
+    pass
