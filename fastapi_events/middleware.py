@@ -5,12 +5,10 @@ from collections import deque
 from contextvars import Token
 from typing import Deque, Iterable, Iterator, Optional
 
-from starlette.types import ASGIApp, Receive, Scope, Send
-
 from fastapi_events import (event_store, handler_store, in_req_res_cycle,
                             middleware_identifier)
 from fastapi_events.handlers.base import BaseEventHandler
-from fastapi_events.typing import Event
+from fastapi_events.typing import ASGIApp, Event, Receive, Scope, Send
 
 logger = logging.getLogger(__name__)
 
