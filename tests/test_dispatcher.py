@@ -81,8 +81,8 @@ async def test_payload_validation_with_pydantic_in_req_res_cycle(
 
     @payload_schema.register(event_name=UserEvents.SIGNED_UP)
     class _SignUpEventSchema(pydantic.BaseModel):
-        user_id: uuid.UUID
-        created_at: datetime
+        user_id: uuid.UUID  # type: ignore[annotation-unchecked]
+        created_at: datetime  # type: ignore[annotation-unchecked]
 
     dispatch_fn = functools.partial(dispatch,
                                     event_name=UserEvents.SIGNED_UP,

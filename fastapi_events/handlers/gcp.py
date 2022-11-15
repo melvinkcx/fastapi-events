@@ -1,5 +1,5 @@
 import json
-from typing import Any, Callable, Dict, Iterable
+from typing import Any, Callable, Dict, Iterable, Optional
 
 from google.cloud import pubsub_v1
 
@@ -18,8 +18,8 @@ class GoogleCloudSimplePubSubHandler(BaseEventHandler):
         project_id: str,
         topic_id: str,
         max_batch_size: int = 1000,  # GCP Pubsub's maximum supported batch size
-        batch_settings_kwargs: Dict[str, Any] = None,
-        serializer: Callable[[Event], str] = None,
+        batch_settings_kwargs: Optional[Dict[str, Any]] = None,
+        serializer: Optional[Callable[[Event], str]] = None,
     ) -> None:
         """Google cloud simple PubSub handler. Publishes events to a single topic."""
 

@@ -59,7 +59,7 @@ class EventHandlerASGIMiddleware:
             middleware_identifier.reset(token_middleware_id)
 
     @contextlib.contextmanager
-    def res_req_cycle_ctx(self):
+    def res_req_cycle_ctx(self) -> Iterator[None]:
         token_is_res_req_cycle: Token = in_req_res_cycle.set(True)
 
         try:
