@@ -90,6 +90,32 @@ pip install fastapi-events[otel]
       return JSONResponse()
   ```
 
+* Configuring `fastapi-events` for Starlite:
+
+  ```python
+  from starlite.app import Starlite
+  from starlite.enums import MediaType
+  from starlite.handlers import get
+  from starlite.middleware import DefineMiddleware
+  
+  from fastapi_events.dispatcher import dispatch
+  from fastapi_events.handlers.local import local_handler
+  from fastapi_events.middleware import EventHandlerASGIMiddleware
+  
+  @get(path="/", media_type=MediaType.TEXT)
+  async def root() -> str:
+      dispatch("new event", payload={"id": 1})   # Emit events anywhere in your code
+      return "OK"
+
+  app = Starlite(middleware=[
+      DefineMiddleware(EventHandlerASGIMiddleware,
+                 handlers=[local_handler])  # registering handlers
+      ],
+      route_handlers=[root],
+    )
+
+  ```
+
 ## Dispatching events
 
 Events can be dispatched anywhere in the code, as long as they are dispatched before a response is made.
