@@ -43,7 +43,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.10",
     },
     python_requires=">=3.7",
-    keywords=["starlette", "fastapi", "pydantic"],
+    keywords=["starlette", "fastapi", "starlite", "pydantic"],
     extras_require={
         "test": [
             "requests",
@@ -61,6 +61,7 @@ setuptools.setup(
             "opentelemetry-sdk>=1.12.0",
             "opentelemetry-test-utils>=0.33b0",
             "starlette>=0.21.0",
+            "starlite>=1.38.0",
             "httpx>=0.23.0",
         ],
         "aws": ["boto3>=1.14"],
