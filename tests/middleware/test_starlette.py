@@ -88,10 +88,14 @@ async def test_event_handling_without_request(middleware_id):
     dummy_handler_1 = DummyHandler()
     dummy_handler_2 = DummyHandler()
 
-    _ = Starlette(middleware=[
+    _app = Starlette(middleware=[
         Middleware(EventHandlerASGIMiddleware,
                    handlers=[dummy_handler_1, dummy_handler_2],
                    middleware_id=middleware_id)])
+
+    # Starlette started building the middleware stack lazily since version 0.24
+    # Ref: https://github.com/encode/starlette/releases/tag/0.24.0
+    _app.build_middleware_stack()
 
     if middleware_id is None:
         with pytest.raises(LookupError, match=r"^<ContextVar name='fastapi_middleware_identifier' at"):
