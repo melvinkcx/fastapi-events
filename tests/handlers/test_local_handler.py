@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Callable, Tuple
+from unittest.mock import MagicMock
 
 import pytest
+from fastapi import Depends
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -172,3 +174,24 @@ def test_otel_support(
     spans_created = otel_test_manager.get_finished_spans()
     assert spans_created[-1].name == "handling event TEST_EVENT with LocalHandler"
     assert spans_created[-1].attributes[SpanAttributes.HANDLER] == "fastapi_events.handlers.local.LocalHandler"
+
+
+def test_local_handler_with_dependencies(
+    setup_test
+):
+    app, handler = setup_test()
+
+    _mock_db = MagicMock()
+
+    async def get_db():
+        return _mock_db
+
+    @handler.register(event_name="TEST_EVENT")
+    async def handle_event_with_dependency(
+        event: Event,
+        db=Depends(get_db)
+    ):
+        assert db == _mock_db
+
+    client = TestClient(app)
+    client.get("/events?event=TEST_EVENT")
