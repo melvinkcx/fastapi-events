@@ -176,22 +176,32 @@ def test_otel_support(
     assert spans_created[-1].attributes[SpanAttributes.HANDLER] == "fastapi_events.handlers.local.LocalHandler"
 
 
-def test_local_handler_with_dependencies(
+def test_local_handler_with_fastapi_dependencies(
     setup_test
 ):
+    """
+    to verify support of FastAPI dependencies in local handlers
+    Relevant Github issue: #41
+    """
     app, handler = setup_test()
 
     _mock_db = MagicMock()
+    _mock_service_client = MagicMock()
 
     async def get_db():
         return _mock_db
 
+    async def get_service_client():
+        return _mock_service_client
+
     @handler.register(event_name="TEST_EVENT")
     async def handle_event_with_dependency(
         event: Event,
-        db=Depends(get_db)
+        db=Depends(get_db),
+        service_client=Depends(get_service_client)
     ):
         assert db == _mock_db
+        assert service_client == _mock_service_client
 
     client = TestClient(app)
     client.get("/events?event=TEST_EVENT")
