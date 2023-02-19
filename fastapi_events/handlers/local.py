@@ -64,7 +64,7 @@ class Dependant:
     def __init__(
         self,
         call: Callable[..., Any],
-        name: str,
+        name: Optional[str],
         dependencies: Optional[List["Dependant"]] = None,
     ):
         self.call = call
@@ -92,7 +92,7 @@ def get_param_sub_dependant(
 def get_dependant(
     *,
     call: Callable[..., Any],
-    name: str = None,
+    name: Optional[str] = None,
 ) -> Dependant:
     handler_signature = get_typed_signature(call)
     signature_params = handler_signature.parameters
