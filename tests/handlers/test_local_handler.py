@@ -180,7 +180,7 @@ def test_local_handler_with_fastapi_dependencies(
     setup_test
 ):
     """
-    to verify support of FastAPI dependencies in local handlers
+    to verify the support of FastAPI dependencies
     Relevant Github issue: #41
     """
     app, handler = setup_test()
@@ -201,6 +201,43 @@ def test_local_handler_with_fastapi_dependencies(
         service_client=Depends(get_service_client)
     ):
         assert db == _mock_db
+        assert service_client == _mock_service_client
+
+    client = TestClient(app)
+    client.get("/events?event=TEST_EVENT")
+
+
+def test_local_handler_with_nested_dependencies(
+    setup_test
+):
+    """
+    to verify the support of nested FastAPI dependencies
+    Relevant Github issue: #41
+    """
+    app, handler = setup_test()
+
+    _mock_service_client = MagicMock()
+    _mock_db = MagicMock()
+    _mock_connection_pool = MagicMock()
+
+    async def get_connection_pool():
+        return _mock_connection_pool
+
+    async def get_db(
+        connection_pool=Depends(get_connection_pool)
+    ):
+        return _mock_db, connection_pool
+
+    async def get_service_client():
+        return _mock_service_client
+
+    @handler.register(event_name="TEST_EVENT")
+    async def handle_event_with_dependency(
+        event: Event,
+        db=Depends(get_db),
+        service_client=Depends(get_service_client)
+    ):
+        assert db == (_mock_db, _mock_connection_pool)
         assert service_client == _mock_service_client
 
     client = TestClient(app)
