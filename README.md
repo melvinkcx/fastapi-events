@@ -3,6 +3,7 @@
 An event dispatching/handling library for FastAPI, and Starlette.
 
 [![](https://github.com/melvinkcx/fastapi-events/actions/workflows/tests.yml/badge.svg?branch=dev&event=push)](https://github.com/melvinkcx/fastapi-events/actions/workflows/tests.yml)
+![PyPI - Downloads](https://img.shields.io/pypi/dw/fastapi-events)
 
 Features:
 
@@ -16,6 +17,9 @@ Features:
 * (__>=0.4.0__) supports event chaining: dispatching events within handlers (thank [@ndopj](https://github.com/ndopj)
   for contributing to the idea)
 * (__>=0.7.0__) supports OpenTelemetry: see [this section](#opentelemetry-otel-support) for details
+* (__>=0.9.0__) supports dependencies in local handlers: see [this section](#using-dependencies-in-local-handler) for details
+
+If you use or like this project, please consider giving it a star so it can reach more developers. Thanks =)
 
 ## Installation
 
@@ -213,6 +217,42 @@ def handle_all_cat_events_another_way(event: Event):
 @local_handler.register(event_name="*")
 async def handle_all_events(event: Event):
     # event handlers can be coroutine function too (`async def`)
+    pass
+```
+
+#### Using Dependencies in Local Handler
+
+> new feature in fastapi-events>=0.9.0
+
+Dependencies can now be used with local handler. Sub-dependencies are also supported.
+
+However, dependencies using generator (with `yield` keyword) is not supported yet. I have the intention to support it in the future.
+
+
+```python
+# ex: in handlers.py
+from fastapi import Depends
+
+from fastapi_events.handlers.local import local_handler
+from fastapi_events.typing import Event
+
+async def get_db_conn():
+    pass    # return a DB conn
+
+
+async def get_db_session(
+    db_conn=Depends(get_db_conn)
+):
+    pass    # return a DB session created from `db_conn`
+
+
+
+@local_handler.register(event_name="*")
+async def handle_all_events(
+    event: Event, 
+    db_session=Depends(get_db_session)
+):
+    # use the `db_session` here
     pass
 ```
 
