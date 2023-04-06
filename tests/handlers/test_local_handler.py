@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Callable, Tuple
+from unittest.mock import MagicMock
 
 import pytest
+from fastapi import Depends
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
@@ -172,3 +174,71 @@ def test_otel_support(
     spans_created = otel_test_manager.get_finished_spans()
     assert spans_created[-1].name == "handling event TEST_EVENT with LocalHandler"
     assert spans_created[-1].attributes[SpanAttributes.HANDLER] == "fastapi_events.handlers.local.LocalHandler"
+
+
+def test_local_handler_with_fastapi_dependencies(
+    setup_test
+):
+    """
+    to verify the support of FastAPI dependencies
+    Relevant Github issue: #41
+    """
+    app, handler = setup_test()
+
+    _mock_db = MagicMock()
+    _mock_service_client = MagicMock()
+
+    async def get_db():
+        return _mock_db
+
+    async def get_service_client():
+        return _mock_service_client
+
+    @handler.register(event_name="TEST_EVENT")
+    async def handle_event_with_dependency(
+        event: Event,
+        db=Depends(get_db),
+        service_client=Depends(get_service_client)
+    ):
+        assert db == _mock_db
+        assert service_client == _mock_service_client
+
+    client = TestClient(app)
+    client.get("/events?event=TEST_EVENT")
+
+
+def test_local_handler_with_nested_dependencies(
+    setup_test
+):
+    """
+    to verify the support of nested FastAPI dependencies
+    Relevant Github issue: #41
+    """
+    app, handler = setup_test()
+
+    _mock_service_client = MagicMock()
+    _mock_db = MagicMock()
+    _mock_connection_pool = MagicMock()
+
+    async def get_connection_pool():
+        return _mock_connection_pool
+
+    async def get_db(
+        connection_pool=Depends(get_connection_pool)
+    ):
+        return _mock_db, connection_pool
+
+    async def get_service_client():
+        return _mock_service_client
+
+    @handler.register(event_name="TEST_EVENT")
+    async def handle_event_with_dependency(
+        event: Event,
+        db=Depends(get_db),
+        service_client=Depends(get_service_client)
+    ):
+        assert db == (_mock_db, _mock_connection_pool)
+        assert service_client == _mock_service_client
+
+    client = TestClient(app)
+    client.get("/events?event=TEST_EVENT")

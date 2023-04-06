@@ -64,6 +64,7 @@ setuptools.setup(
             "starlette>=0.21.0",
             "starlite>=1.38.0",
             "httpx>=0.23.0",
+            "fastapi>=0.92.0",  # FIXME
         ],
         "aws": ["boto3>=1.14"],
         "google": ["google-cloud-pubsub>=2.13.6"],
