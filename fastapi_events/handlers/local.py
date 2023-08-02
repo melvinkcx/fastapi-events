@@ -7,7 +7,6 @@ from typing import Any, Callable, Dict, ForwardRef, List, Optional, Tuple, cast
 
 # TODO Try to completely eliminate the need of using dependent libs
 from fastapi import params  # FIXME
-from pydantic.error_wrappers import ErrorWrapper
 
 from fastapi_events.handlers.base import BaseEventHandler
 from fastapi_events.otel.utils import create_span_for_handle_fn
@@ -118,37 +117,31 @@ async def solve_dependencies(
     *,
     event: Event,
     dependant: Dependant,
-) -> Tuple[
-    Dict[str, Any],
-    List[ErrorWrapper]
-]:
+) -> Dict[str, Any]:
     values: Dict[str, Any] = {}
-    errors: List[ErrorWrapper] = []
 
     for sub_dependant in dependant.dependencies:
         use_sub_dependant = sub_dependant
         call = sub_dependant.call
 
-        sub_values, sub_errors = await solve_dependencies(
+        sub_values = await solve_dependencies(
             event=event,
             dependant=use_sub_dependant,
         )
-        if sub_errors:
-            errors.extend(sub_errors)
-            continue
-
         # TODO support dependencies with `yield`
 
-        elif asyncio.iscoroutinefunction(call):
+        if asyncio.iscoroutinefunction(call):
             solved = await call(**sub_values)
         else:
             loop = asyncio.get_event_loop()
-            solved = await loop.run_in_executor(None, functools.partial(call, event, **sub_values))
+            solved = await loop.run_in_executor(
+                None, functools.partial(call, event, **sub_values)
+            )
 
         if sub_dependant.name is not None:
             values[sub_dependant.name] = solved
 
-    return values, errors
+    return values
 
 
 class LocalHandler(BaseEventHandler):
@@ -176,7 +169,7 @@ class LocalHandler(BaseEventHandler):
             for handler in self._get_handlers_for_event(event_name=event_name):
                 # #41 resolve dependencies
                 dependant = get_dependant(call=handler)
-                values, errors = await solve_dependencies(event=event, dependant=dependant)
+                values = await solve_dependencies(event=event, dependant=dependant)
 
                 if inspect.iscoroutinefunction(handler):
                     await handler(event, **values)
