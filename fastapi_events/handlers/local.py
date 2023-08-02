@@ -3,7 +3,7 @@ import fnmatch
 import functools
 import inspect
 import sys
-from typing import Any, Callable, Dict, ForwardRef, List, Optional, Tuple, cast
+from typing import Any, Callable, Dict, ForwardRef, List, Optional, cast
 
 # TODO Try to completely eliminate the need of using dependent libs
 from fastapi import params  # FIXME
