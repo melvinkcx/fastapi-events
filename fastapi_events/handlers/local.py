@@ -5,9 +5,7 @@ import inspect
 import sys
 from typing import Any, Callable, Dict, ForwardRef, List, Optional, Tuple, cast
 
-# TODO Try to completely eliminate the need of using dependent libs
-from fastapi import params  # FIXME
-from pydantic.error_wrappers import ErrorWrapper
+from typing_extensions import Protocol, runtime_checkable
 
 from fastapi_events.handlers.base import BaseEventHandler
 from fastapi_events.otel.utils import create_span_for_handle_fn
@@ -60,6 +58,12 @@ def get_typed_signature(
     return typed_signature
 
 
+@runtime_checkable
+class Depends(Protocol):
+    dependency: Optional[Callable[..., Any]]
+    use_cache: bool
+
+
 class Dependant:
     def __init__(
         self,
@@ -77,7 +81,7 @@ def get_param_sub_dependant(
     param: inspect.Parameter,
     name: str,
 ) -> Dependant:
-    depends: params.Depends = param.default
+    depends: Depends = param.default
     if depends.dependency:
         dependency = depends.dependency
     else:
@@ -103,7 +107,7 @@ def get_dependant(
     )
 
     for param_name, param in signature_params.items():
-        if isinstance(param.default, params.Depends):  # FIXME create a Protocol for params.Depends?
+        if isinstance(param.default, Depends):  # FIXME create a Protocol for params.Depends?
             sub_dependant = get_param_sub_dependant(
                 param=param,
                 name=param_name,
@@ -120,10 +124,10 @@ async def solve_dependencies(
     dependant: Dependant,
 ) -> Tuple[
     Dict[str, Any],
-    List[ErrorWrapper]
+    List[Any]
 ]:
     values: Dict[str, Any] = {}
-    errors: List[ErrorWrapper] = []
+    errors: List[Any] = []
 
     for sub_dependant in dependant.dependencies:
         use_sub_dependant = sub_dependant
