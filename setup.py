@@ -57,7 +57,7 @@ setuptools.setup(
             "moto[sqs]==2.2",
             "flake8>=3.9.2",
             "isort>=5.10.1",
-            "pydantic>=1.5.0",
+            "pydantic>=1.5.0,<2.0.0",
             "google-cloud-pubsub>=2.13.6",
             "opentelemetry-sdk>=1.12.0",
             "opentelemetry-test-utils>=0.33b0",
