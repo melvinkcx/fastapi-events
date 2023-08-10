@@ -18,6 +18,7 @@ Features:
   for contributing to the idea)
 * (__>=0.7.0__) supports OpenTelemetry: see [this section](#opentelemetry-otel-support) for details
 * (__>=0.9.0__) supports dependencies in local handlers: see [this section](#using-dependencies-in-local-handler) for details
+* (__>=0.9.1__) supports Pydantic v2
 
 If you use or like this project, please consider giving it a star so it can reach more developers. Thanks =)
 
