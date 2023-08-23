@@ -19,10 +19,12 @@ from fastapi_events.registry.payload_schema import \
 from fastapi_events.typing import Event, EventName, Payload, PydanticModel
 from fastapi_events.utils import strtobool
 
+IS_PYDANTIC_V1 = False
 try:
     import pydantic  # noqa: F401
 
     HAS_PYDANTIC = True
+    IS_PYDANTIC_V1 = pydantic.VERSION.startswith("1.")
 except ImportError:
     HAS_PYDANTIC = False
 
@@ -141,7 +143,10 @@ def _validate_payload(
     payload_schema_cls = payload_schema_registry.get(event_name)
     if payload_schema_cls:
         payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
-        payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
+        if IS_PYDANTIC_V1:
+            payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
+        else:
+            payload = payload_schema_cls(**(payload or {})).model_dump(**payload_schema_cls_dict_args)
     else:
         logger.debug("Payload schema for event %s not found. Skipping validation...", event_name)
 
