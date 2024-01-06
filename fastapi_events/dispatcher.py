@@ -88,9 +88,6 @@ def _set_middleware_identifier(middleware_id: int) -> Iterator[None]:
         middleware_identifier.reset(token_middleware_id)
 
 
-# FIXME maybe I can use @functools.singledispatch here?
-# no, singledispatch fn must be called with at least 1 positional argument
-
 def dispatch(
     event_name_or_model: Union[str, Enum, Any] = None,
     payload: Optional[Any] = None,
@@ -134,7 +131,7 @@ def dispatch(
             # Handle dispatch of pydantic Model
             if isinstance(event_name_or_model, pydantic.BaseModel):
                 if not event_name:
-                    event_name = getattr(event_name_or_model, "__event_name__")
+                    event_name = getattr(event_name_or_model, "__event_name__", None)
 
                 if not event_name:
                     raise MissingEventNameDuringDispatch
