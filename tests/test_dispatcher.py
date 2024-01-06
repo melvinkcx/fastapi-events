@@ -13,7 +13,7 @@ import fastapi_events.dispatcher as dispatcher_module
 from fastapi_events import BaseEventHandler, handler_store
 from fastapi_events.constants import FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR
 from fastapi_events.dispatcher import dispatch
-from fastapi_events.errors import FastapiEventError, MultiplePayloadsDetectedDuringDispatch
+from fastapi_events.errors import MultiplePayloadsDetectedDuringDispatch
 from fastapi_events.registry.payload_schema import EventPayloadSchemaRegistry
 from fastapi_events.typing import Event
 
