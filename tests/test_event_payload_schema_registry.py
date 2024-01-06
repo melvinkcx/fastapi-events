@@ -29,7 +29,7 @@ def registry():
     (UserEvents.SIGNED_UP,
      "USER_SIGNED_UP",)
 )
-async def test_schema_registration_with_explicit_event_name(
+def test_schema_registration_with_explicit_event_name(
     event_name, registry
 ):
     """
@@ -40,7 +40,7 @@ async def test_schema_registration_with_explicit_event_name(
     assert registry[event_name] == _SignUpEventSchema
 
 
-async def test_schema_registration_with_event_name_from_schema_1(
+def test_schema_registration_with_event_name_from_schema_1(
     registry
 ):
     """
@@ -56,7 +56,7 @@ async def test_schema_registration_with_event_name_from_schema_1(
            == Schema
 
 
-async def test_schema_registration_with_event_name_from_schema_2(
+def test_schema_registration_with_event_name_from_schema_2(
     registry
 ):
     """
@@ -72,7 +72,7 @@ async def test_schema_registration_with_event_name_from_schema_2(
            == Schema
 
 
-async def test_schema_registration_without_event_name(
+def test_schema_registration_without_event_name(
     registry
 ):
     """
