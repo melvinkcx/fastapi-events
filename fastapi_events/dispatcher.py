@@ -92,7 +92,6 @@ def _set_middleware_identifier(middleware_id: int) -> Iterator[None]:
 # no, singledispatch fn must be called with at least 1 positional argument
 
 def dispatch(
-    # FIXME Can be either event_name or Pydantic model (support positional arg)
     event_name_or_model: Union[str, Enum, Any] = None,
     payload: Optional[Any] = None,
     event_name: Union[str, Enum] = None,  # this will be prioritized
