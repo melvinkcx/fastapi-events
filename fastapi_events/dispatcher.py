@@ -88,6 +88,7 @@ def _set_middleware_identifier(middleware_id: int) -> Iterator[None]:
         middleware_identifier.reset(token_middleware_id)
 
 
+# skipcq: PY-R1000
 def dispatch(
     event_name_or_model: Union[str, Enum, Any] = None,
     payload: Optional[Any] = None,
