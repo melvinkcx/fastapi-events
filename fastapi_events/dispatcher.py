@@ -148,7 +148,6 @@ def _validate_payload(
     return payload
 
 
-# skipcq: PY-R1000
 def dispatch(
     event_name_or_model: Union[EventName, Any] = None,
     payload: Optional[Any] = None,
