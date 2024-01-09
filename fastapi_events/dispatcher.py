@@ -9,12 +9,14 @@ from typing import Any, Deque, Dict, Iterable, Iterator, Optional, Union
 from fastapi_events import (BaseEventHandler, event_store, handler_store,
                             in_req_res_cycle, middleware_identifier)
 from fastapi_events.constants import FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR
+from fastapi_events.errors import (MissingEventNameDuringDispatch,
+                                   MultiplePayloadsDetectedDuringDispatch)
 from fastapi_events.otel.utils import (create_span_for_dispatch_fn,
                                        inject_traceparent)
 from fastapi_events.registry.base import BaseEventPayloadSchemaRegistry
 from fastapi_events.registry.payload_schema import \
     registry as default_payload_schema_registry
-from fastapi_events.typing import Event
+from fastapi_events.typing import Event, EventName, Payload, PydanticModel
 from fastapi_events.utils import strtobool
 
 try:
@@ -86,9 +88,70 @@ def _set_middleware_identifier(middleware_id: int) -> Iterator[None]:
         middleware_identifier.reset(token_middleware_id)
 
 
+def _check_for_multiple_payloads(
+    event_name_or_model: Union[EventName, PydanticModel],
+    payload: Payload
+):
+    """
+    Check if multiple payloads are provided.
+    If event model, event name and payload are provided at the same time,
+    we won't know which payload to take.
+    """
+    if all((
+        event_name_or_model and not isinstance(event_name_or_model, (str, Enum)),
+        payload  # can be {}
+    )):
+        raise MultiplePayloadsDetectedDuringDispatch
+
+
+def _derive_event_name_and_payload_from_pydantic_model(
+    event_name_or_model: Union[EventName, PydanticModel],
+    event_name: EventName,
+    payload: Payload,
+    payload_schema_cls_dict_args: Dict[str, Any]
+):
+    """
+    Derive event_name and payload from Pydantic model
+    """
+    if not event_name:
+        event_name = getattr(event_name_or_model, "__event_name__", None)
+
+    if not event_name:
+        raise MissingEventNameDuringDispatch
+
+    if not payload:
+        payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
+        payload = event_name_or_model.dict(**payload_schema_cls_dict_args)
+
+    return event_name, payload
+
+
+def _validate_payload(
+    event_name: EventName,
+    payload: Payload,
+    payload_schema_registry: BaseEventPayloadSchemaRegistry,
+    payload_schema_cls_dict_args: Dict[str, Any]
+):
+    """
+    Validate payload if a corresponding payload schema is registered
+    """
+    if not payload_schema_registry:
+        payload_schema_registry = default_payload_schema_registry
+
+    payload_schema_cls = payload_schema_registry.get(event_name)
+    if payload_schema_cls:
+        payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
+        payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
+    else:
+        logger.debug("Payload schema for event %s not found. Skipping validation...", event_name)
+
+    return payload
+
+
 def dispatch(
-    event_name: Union[str, Enum],
+    event_name_or_model: Union[EventName, Any] = None,
     payload: Optional[Any] = None,
+    event_name: EventName = None,  # this will be prioritized
     validate_payload: bool = True,
     payload_schema_cls_dict_args: Optional[Dict[str, Any]] = None,
     payload_schema_registry: Optional[BaseEventPayloadSchemaRegistry] = None,
@@ -96,35 +159,44 @@ def dispatch(
 ) -> None:
     """
     A wrapper of the main dispatcher function with additional checks.
-
-    Steps:
-    1. validate event payload with schema registered:
-        - only when pydantic is available
-        - only when a payload schema has been registered with the event
-    2. check if event dispatching has been disabled, return if so
-    3. check if dispatch is called within the request-response cycle:
-        3.1. if so, append the event into the event_store context var
-        3.2. if not, create a Task to handle the event with handlers registered
     """
+    # Handle invalid arguments
+    _check_for_multiple_payloads(event_name_or_model=event_name_or_model, payload=payload)
+
+    # Handle dispatch without event_name specified
+    if not event_name and isinstance(event_name_or_model, (str, Enum)):
+        event_name = event_name_or_model
+
     with create_span_for_dispatch_fn(event_name=event_name):
-        # Validate event payload with schema registered
-        if HAS_PYDANTIC and validate_payload:
-            logger.debug("Pydantic is enabled. Validating payload schema...")
-            if not payload_schema_registry:
-                payload_schema_registry = default_payload_schema_registry
+        if HAS_PYDANTIC:
+            # Handle dispatch of pydantic Model
+            if isinstance(event_name_or_model, pydantic.BaseModel):
+                logger.debug("Pydantic model is passed as the payload. Deriving event_name, and payload from it...")
+                event_name, payload = _derive_event_name_and_payload_from_pydantic_model(
+                    event_name_or_model=event_name_or_model,
+                    event_name=event_name,
+                    payload=payload,
+                    payload_schema_cls_dict_args=payload_schema_cls_dict_args
+                )
 
-            payload_schema_cls = payload_schema_registry.get(event_name)
-            if payload_schema_cls:
-                payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
-                payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
-            else:
-                logger.debug("Payload schema for event %s not found. Skipping validation...", event_name)
+            # Validate event payload with schema registered
+            elif (isinstance(payload, dict) or not payload) and validate_payload:
+                logger.debug("Pydantic is enabled. Validating payload schema...")
+                payload = _validate_payload(
+                    event_name=event_name,
+                    payload=payload,
+                    payload_schema_registry=payload_schema_registry,
+                    payload_schema_cls_dict_args=payload_schema_cls_dict_args
+                )
 
+        # OTEL
         if payload and isinstance(payload, dict):
             logger.debug("Injecting traceparent to event payload...")
             inject_traceparent(payload=payload)
 
+        # Environment-specific handling
         if middleware_id:
+            logger.debug("Custom middleware_id provided...")
             with _set_middleware_identifier(middleware_id):
                 return _dispatch(event_name=event_name, payload=payload)
         else:
