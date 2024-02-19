@@ -123,7 +123,10 @@ def _derive_event_name_and_payload_from_pydantic_model(
 
     if not payload:
         payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
-        payload = event_name_or_model.dict(**payload_schema_cls_dict_args)
+        if IS_PYDANTIC_V1:
+            payload = event_name_or_model.dict(**payload_schema_cls_dict_args)
+        else:
+            payload = event_name_or_model.model_dump(**payload_schema_cls_dict_args)
 
     return event_name, payload
 
