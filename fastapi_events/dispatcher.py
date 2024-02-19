@@ -110,7 +110,8 @@ def _derive_event_name_and_payload_from_pydantic_model(
     event_name_or_model: Union[EventName, PydanticModel],
     event_name: EventName,
     payload: Payload,
-    payload_schema_cls_dict_args: Dict[str, Any]
+    payload_schema_cls_dict_args: Dict[str, Any],
+    payload_schema_dump: bool
 ):
     """
     Derive event_name and payload from Pydantic model
@@ -123,10 +124,13 @@ def _derive_event_name_and_payload_from_pydantic_model(
 
     if not payload:
         payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
-        if IS_PYDANTIC_V1:
-            payload = event_name_or_model.dict(**payload_schema_cls_dict_args)
+        if payload_schema_dump:
+            if IS_PYDANTIC_V1:
+                payload = event_name_or_model.dict(**payload_schema_cls_dict_args)
+            else:
+                payload = event_name_or_model.model_dump(**payload_schema_cls_dict_args)
         else:
-            payload = event_name_or_model.model_dump(**payload_schema_cls_dict_args)
+            payload = event_name_or_model
 
     return event_name, payload
 
@@ -135,7 +139,8 @@ def _validate_payload(
     event_name: EventName,
     payload: Payload,
     payload_schema_registry: BaseEventPayloadSchemaRegistry,
-    payload_schema_cls_dict_args: Dict[str, Any]
+    payload_schema_cls_dict_args: Dict[str, Any],
+    payload_schema_dump: bool = True
 ):
     """
     Validate payload if a corresponding payload schema is registered
@@ -146,10 +151,14 @@ def _validate_payload(
     payload_schema_cls = payload_schema_registry.get(event_name)
     if payload_schema_cls:
         payload_schema_cls_dict_args = payload_schema_cls_dict_args or DEFAULT_PAYLOAD_SCHEMA_CLS_DICT_ARGS
-        if IS_PYDANTIC_V1:
-            payload = payload_schema_cls(**(payload or {})).dict(**payload_schema_cls_dict_args)
+        deserialized_payload = payload_schema_cls(**(payload or {}))
+        if payload_schema_dump:
+            if IS_PYDANTIC_V1:
+                payload = deserialized_payload.dict(**payload_schema_cls_dict_args)
+            else:
+                payload = deserialized_payload.model_dump(**payload_schema_cls_dict_args)
         else:
-            payload = payload_schema_cls(**(payload or {})).model_dump(**payload_schema_cls_dict_args)
+            payload = deserialized_payload
     else:
         logger.debug("Payload schema for event %s not found. Skipping validation...", event_name)
 
@@ -163,7 +172,8 @@ def dispatch(
     validate_payload: bool = True,
     payload_schema_cls_dict_args: Optional[Dict[str, Any]] = None,
     payload_schema_registry: Optional[BaseEventPayloadSchemaRegistry] = None,
-    middleware_id: Optional[int] = None
+    middleware_id: Optional[int] = None,
+    payload_schema_dump: bool = True
 ) -> None:
     """
     A wrapper of the main dispatcher function with additional checks.
@@ -184,7 +194,8 @@ def dispatch(
                     event_name_or_model=event_name_or_model,
                     event_name=event_name,
                     payload=payload,
-                    payload_schema_cls_dict_args=payload_schema_cls_dict_args
+                    payload_schema_cls_dict_args=payload_schema_cls_dict_args,
+                    payload_schema_dump=payload_schema_dump,
                 )
 
             # Validate event payload with schema registered
@@ -194,7 +205,8 @@ def dispatch(
                     event_name=event_name,
                     payload=payload,
                     payload_schema_registry=payload_schema_registry,
-                    payload_schema_cls_dict_args=payload_schema_cls_dict_args
+                    payload_schema_cls_dict_args=payload_schema_cls_dict_args,
+                    payload_schema_dump=payload_schema_dump
                 )
 
         # OTEL
