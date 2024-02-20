@@ -34,7 +34,7 @@ class BaseEventPayloadSchemaRegistry(UserDict, metaclass=ABCMeta):
 
         :raises MissingEventNameDuringRegistration: If `event_name` is not provided and the schema does not have an `__event_name__` attribute.
         :raises AssertionError: If the schema is not a subclass of `pydantic.BaseModel`.
-        
+
         ### Examples
 
         Provide an event name as a decorator argument:

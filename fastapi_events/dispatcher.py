@@ -196,18 +196,18 @@ def dispatch(
     :param middleware_id: Optional custom middleware identifier.
     :param payload_schema_dump: Dump pydantic models to dict before calling event handlers. If False, \
         the event handlers will be called with instances of the payload schema.
-    
+
     ### Exceptions
 
     :raises MultiplePayloadsDetectedDuringDispatch: If `event_name_or_model` is a pydantic model and `payload` is provided.
     :raises MissingEventNameDuringDispatch: If `event_name` is not provided and the event model does not have an `__event_name__` attribute.
-    
+
     ### Examples
 
     Events have a name and optional payload. The payload can be any python object.
     ```python
     from fastapi_events.dispatcher import dispatch
-    
+
     # With a string event name and dict payload (payload has no validation)
     dispatch("user_created", {"user_id": 1})
     ```
@@ -215,7 +215,7 @@ def dispatch(
     Register a payload schema with the event name to validate the payload.
     ```python
     from fastapi_events.registry.payload_schema import registry
-    
+
     @registry.register("user_created")
     class UserCreated(pydantic.BaseModel):
         user_id: int
