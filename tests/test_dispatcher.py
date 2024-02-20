@@ -68,8 +68,12 @@ async def test_suppression_of_events_in_req_res_cycle(
      ({"user_id": uuid.uuid4()}, True),
      ({}, True),
      (None, True)))
+@pytest.mark.parametrize(
+    "payload_schema_dump",
+    (True, False)
+)
 async def test_payload_validation_with_pydantic_in_req_res_cycle(
-    event_payload, should_raise_error, setup_mocks_for_events_in_req_res_cycle
+    event_payload, should_raise_error, payload_schema_dump, setup_mocks_for_events_in_req_res_cycle,
 ):
     """
     Test if event payloads are properly validated when a payload schema is registered.
@@ -88,7 +92,8 @@ async def test_payload_validation_with_pydantic_in_req_res_cycle(
     dispatch_fn = functools.partial(dispatch,
                                     event_name=UserEvents.SIGNED_UP,
                                     payload=event_payload,
-                                    payload_schema_registry=payload_schema)
+                                    payload_schema_registry=payload_schema,
+                                    payload_schema_dump=payload_schema_dump)
 
     if should_raise_error:
         with pytest.raises(pydantic.ValidationError):
@@ -100,8 +105,12 @@ async def test_payload_validation_with_pydantic_in_req_res_cycle(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload_schema_dump",
+    (True, False)
+)
 async def test_dispatching_with_pydantic_model(
-    setup_mocks_for_events_in_req_res_cycle, mocker
+    payload_schema_dump, setup_mocks_for_events_in_req_res_cycle, mocker
 ):
     payload_schema = EventPayloadSchemaRegistry()
 
@@ -114,12 +123,14 @@ async def test_dispatching_with_pydantic_model(
 
         username: str
 
-    dispatch(UserSignedUpEventSchema(username="USER_ABC"))
+    event = UserSignedUpEventSchema(username="USER_ABC")
+    expected_payload = {"username": "USER_ABC"} if payload_schema_dump else event
+    dispatch(event, payload_schema_dump=payload_schema_dump)
 
     assert mocks["spy_event_store_ctx_var"].get.called
     spy__dispatch.assert_called_with(
         event_name="USER_SIGNED_UP",
-        payload={"username": "USER_ABC"}
+        payload=expected_payload
     )
 
 
