@@ -4,7 +4,7 @@ from typing import Dict, Iterable
 
 from fastapi_events.handlers.base import BaseEventHandler
 
-__version__ = "0.10.1"
+__version__ = "0.10.2"
 
 # handlers keeps track of all handlers registered via EventHandlerASGIMiddleware
 handler_store: Dict[int, Iterable[BaseEventHandler]] = defaultdict(list)
