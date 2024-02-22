@@ -194,8 +194,8 @@ def dispatch(
     :param payload_schema_registry: Optional payload schema registry. If omitted, the default registry \
         will be used.
     :param middleware_id: Optional custom middleware identifier.
-    :param payload_schema_dump: Dump pydantic models to dict before calling event handlers. If False, \
-        the event handlers will be called with instances of the payload schema.
+    :param payload_schema_dump: Dump pydantic model payloads and validated payloads to dict before \
+        calling event handlers.
 
     ### Exceptions
 
