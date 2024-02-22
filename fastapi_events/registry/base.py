@@ -21,6 +21,42 @@ class BaseEventPayloadSchemaRegistry(UserDict, metaclass=ABCMeta):
     """
 
     def register(self, _schema=None, event_name=None):
+        """
+        Registers a payload schema, used to validate event payload during dispatch.
+        Schemas must be a subclass of `pydantic.BaseModel`.
+
+        ### Args
+
+        :param _schema: A Pydantic schema to be registered. Typically, you would use `register` as a decorator and omit this argument.
+        :param event_name: The name of the event to be associated with the schema. If provided, overrides the `__event_name__` attribute of the schema.
+
+        ### Exceptions
+
+        :raises MissingEventNameDuringRegistration: If `event_name` is not provided and the schema does not have an `__event_name__` attribute.
+        :raises AssertionError: If the schema is not a subclass of `pydantic.BaseModel`.
+
+        ### Examples
+
+        Provide an event name as a decorator argument:
+        ```python
+        from fastapi_events.registry.payload_schema import registry
+
+        @registry.register(event_name="my_event")
+        class MyEventPayloadSchema(pydantic.BaseModel):
+            id: int
+            name: str
+        ```
+
+        Or use the `__event_name__` attribute in the schema to have the event name inferred from the schema itself:
+        ```python
+        @registry.register
+        class MyEventPayloadSchema(pydantic.BaseModel):
+            __event_name__ = "my_event"
+            id: int
+            name: str
+        ```
+        """
+
         def _derive_event_name(_schema):
             """
             this modifies `event_name` in the scope

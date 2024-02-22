@@ -160,6 +160,26 @@ class LocalHandler(BaseEventHandler):
         self._registry = {}
 
     def register(self, _func=None, event_name="*"):
+        """
+        Register a handler for an event. The handler will receive a tuple of event name and payload as its only argument.
+
+        ### Args
+
+        :param _func: The function to be registered as a handler.  Typically, you would use `register` as a decorator and omit this argument.
+        :param event_name: The name of the event to be associated with the handler. Use "*", the default value, to match all events.
+
+        ### Examples
+
+        Register a handler as a decorator:
+        ```python
+        from fastapi_events.handlers.local import local_handler
+        from fastapi_events.typing import Event
+
+        @local_handler.register(event_name="my_event")
+        async def my_event_handler(event: Event):
+            event_name, payload = event
+            print(f"Received event {event_name} with payload {payload}")        ```
+        """
         def _wrap(func):
             self._register_handler(event_name, func)
             return func

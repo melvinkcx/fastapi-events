@@ -176,7 +176,87 @@ def dispatch(
     payload_schema_dump: bool = True
 ) -> None:
     """
-    A wrapper of the main dispatcher function with additional checks.
+    Dispatches an event. This is a wrapper of the main dispatcher function with additional checks.
+
+    ### Args
+
+    :param event_name_or_model: Event name or pydantic model. If `event_name` is not provided, \
+        the event name will be derived from the model's `__event_name__` attribute.
+    :param payload: Event payload.
+    :param event_name: Event name. If provided, overrides the event name derived from the event model.
+    :param validate_payload: Validate payload with its registered payload schema. Pydantic payloads \
+        are dumped and re-instantiated.
+    :param payload_schema_cls_dict_args: A dict of args passed to the pydantic dump function. Defaults \
+        to `{"exclude_unset": True}`. See \
+        [pydantic v1](https://docs.pydantic.dev/1.10/usage/exporting_models/#modeldict) or \
+        [pydantic v2](https://docs.pydantic.dev/latest/api/base_model/#pydantic.BaseModel.model_dump) \
+        docs for more details.
+    :param payload_schema_registry: Optional payload schema registry. If omitted, the default registry \
+        will be used.
+    :param middleware_id: Optional custom middleware identifier.
+    :param payload_schema_dump: Dump pydantic model payloads and validated payloads to dict before \
+        calling event handlers.
+
+    ### Exceptions
+
+    :raises MultiplePayloadsDetectedDuringDispatch: If `event_name_or_model` is a pydantic model and \
+        `payload` is provided.
+    :raises MissingEventNameDuringDispatch: If `event_name` is not provided and the event model does \
+        not have an `__event_name__` attribute.
+
+    ### Examples
+
+    Events have a name and optional payload. The payload can be any python object.
+    ```python
+    from fastapi_events.dispatcher import dispatch
+
+    # With a string event name and dict payload (payload has no validation)
+    dispatch("user_created", {"user_id": 1})
+    ```
+
+    Register a payload schema with the event name to validate the payload.
+    ```python
+    from fastapi_events.registry.payload_schema import registry
+
+    @registry.register("user_created")
+    class UserCreated(pydantic.BaseModel):
+        user_id: int
+
+    # The payload will be validated with the registered payload schema
+    dispatch("user_created", {"user_id": 1})
+    ```
+
+    Alternatively, the payload can be a pydantic model instance. The payload will be dumped to dict \
+        before being passed to handlers.
+    - If `validate_payload` is True, it will be re-instantiated using the registered payload schema \
+        before being dumped to dict again.
+    - If `payload_schema_dump` is False, the payload will be passed to handlers as an instance of the \
+        payload schema.
+    - Set both to false if you want to pass the payload instance untouched to the handlers.
+
+    ```python
+    dispatch("user_created", UserCreated(user_id=1))
+    ```
+
+    If a pydantic model is passed as the payload, the event name will be derived from the model's \
+        `__event_name__` attribute.
+    ```python
+    class UserCreated(pydantic.BaseModel):
+        __event_name__ = "user_created"
+        user_id: int
+
+    dispatch(UserCreated(user_id=1))
+    ```
+
+    Providing an explicit event name will override the derived event name from the model.
+    ```python
+    class UserCreated(pydantic.BaseModel):
+        __event_name__ = "user_created"
+        user_id: int
+
+    # `__event_name__` will be overridden, and only handlers for "user_updated" will be called.
+    dispatch(UserCreated(user_id=1), event_name="user_updated")
+    ```
     """
     # Handle invalid arguments
     _check_for_multiple_payloads(event_name_or_model=event_name_or_model, payload=payload)
