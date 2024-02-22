@@ -199,8 +199,10 @@ def dispatch(
 
     ### Exceptions
 
-    :raises MultiplePayloadsDetectedDuringDispatch: If `event_name_or_model` is a pydantic model and `payload` is provided.
-    :raises MissingEventNameDuringDispatch: If `event_name` is not provided and the event model does not have an `__event_name__` attribute.
+    :raises MultiplePayloadsDetectedDuringDispatch: If `event_name_or_model` is a pydantic model and \
+        `payload` is provided.
+    :raises MissingEventNameDuringDispatch: If `event_name` is not provided and the event model does \
+        not have an `__event_name__` attribute.
 
     ### Examples
 
@@ -226,15 +228,18 @@ def dispatch(
 
     Alternatively, the payload can be a pydantic model instance. The payload will be dumped to dict \
         before being passed to handlers.
-    - If `validate_payload` is True, it will be re-instantiated using the registered payload schema before being dumped to dict again.
-    - If `payload_schema_dump` is False, the payload will be passed to handlers as an instance of the payload schema.
+    - If `validate_payload` is True, it will be re-instantiated using the registered payload schema \
+        before being dumped to dict again.
+    - If `payload_schema_dump` is False, the payload will be passed to handlers as an instance of the \
+        payload schema.
     - Set both to false if you want to pass the payload instance untouched to the handlers.
 
     ```python
     dispatch("user_created", UserCreated(user_id=1))
     ```
 
-    If a pydantic model is passed as the payload, the event name will be derived from the model's `__event_name__` attribute.
+    If a pydantic model is passed as the payload, the event name will be derived from the model's \
+        `__event_name__` attribute.
     ```python
     class UserCreated(pydantic.BaseModel):
         __event_name__ = "user_created"
