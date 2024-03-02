@@ -2,7 +2,7 @@ import asyncio
 import functools
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -64,7 +64,7 @@ async def test_suppression_of_events_in_req_res_cycle(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     "event_payload,should_raise_error",
-    (({"user_id": uuid.uuid4(), "created_at": datetime.utcnow()}, False),
+    (({"user_id": uuid.uuid4(), "created_at": datetime.now(timezone.utc)}, False),
      ({"user_id": uuid.uuid4()}, True),
      ({}, True),
      (None, True)))
