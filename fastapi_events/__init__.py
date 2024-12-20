@@ -4,12 +4,12 @@ from typing import Dict, Iterable
 
 from fastapi_events.handlers.base import BaseEventHandler
 
-__version__ = "0.9.1"
+__version__ = "0.12.1"
 
 # handlers keeps track of all handlers registered via EventHandlerASGIMiddleware
 handler_store: Dict[int, Iterable[BaseEventHandler]] = defaultdict(list)
 
-# event_store keeps track of all events dispatched the request-response cycle
+# event_store keeps track of all events dispatched in a request-response cycle
 event_store: ContextVar = ContextVar("fastapi_event_store")
 
 # in_req_res_cycle is set to allow dispatch() to work in event handlers

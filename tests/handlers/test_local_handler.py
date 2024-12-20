@@ -176,11 +176,11 @@ def test_otel_support(
     assert spans_created[-1].attributes[SpanAttributes.HANDLER] == "fastapi_events.handlers.local.LocalHandler"
 
 
-def test_local_handler_with_fastapi_dependencies(
+def test_local_handler_with_async_fastapi_dependencies(
     setup_test
 ):
     """
-    to verify the support of FastAPI dependencies
+    to verify the support of async FastAPI dependencies
     Relevant Github issue: #41
     """
     app, handler = setup_test()
@@ -207,11 +207,11 @@ def test_local_handler_with_fastapi_dependencies(
     client.get("/events?event=TEST_EVENT")
 
 
-def test_local_handler_with_nested_dependencies(
+def test_local_handler_with_nested_async_dependencies(
     setup_test
 ):
     """
-    to verify the support of nested FastAPI dependencies
+    to verify the support of nested async FastAPI dependencies
     Relevant Github issue: #41
     """
     app, handler = setup_test()
@@ -239,6 +239,31 @@ def test_local_handler_with_nested_dependencies(
     ):
         assert db == (_mock_db, _mock_connection_pool)
         assert service_client == _mock_service_client
+
+    client = TestClient(app)
+    client.get("/events?event=TEST_EVENT")
+
+
+def test_local_handler_with_sync_fastapi_dependencies(
+    setup_test
+):
+    """
+    to verify the support of sync FastAPI dependencies
+    Relevant Github issue: #60
+    """
+    app, handler = setup_test()
+
+    _mock_dependency = MagicMock()
+
+    def get_repo():
+        return _mock_dependency
+
+    @handler.register(event_name="TEST_EVENT")
+    async def handle_event_with_sync_dependency(
+        event: Event,
+        repo=Depends(get_repo)
+    ):
+        assert repo == _mock_dependency
 
     client = TestClient(app)
     client.get("/events?event=TEST_EVENT")

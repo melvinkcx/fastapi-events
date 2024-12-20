@@ -1,7 +1,10 @@
 from enum import Enum
 from typing import Any, Awaitable, Callable, MutableMapping, Tuple, Union
 
-Event = Tuple[Union[str, Enum], Any]
+EventName = Union[str, Enum]
+Event = Tuple[EventName, Any]
+PydanticModel = Any  # FIXME
+Payload = Union[dict, PydanticModel]
 Scope = MutableMapping[str, Any]
 Message = MutableMapping[str, Any]
 Receive = Callable[[], Awaitable[Message]]

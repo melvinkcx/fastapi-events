@@ -39,6 +39,11 @@ def create_span_for_handle_fn(
 
     links, context = [], None
 
+    if hasattr(payload, "model_dump"):  # handle Pydantic v2
+        payload = payload.model_dump()
+    elif hasattr(payload, "dict"):    # handles Pydantic v1
+        payload = payload.dict()
+
     # Extract span from remote context
     remote_ctx = propagate.extract(payload)
     if use_span_linking:
@@ -84,6 +89,11 @@ def inject_traceparent(payload: Dict):
     if not HAS_OTEL_INSTALLED:
         logger.debug("Unable to inject traceparent. OTEL is not installed.")
         return
+
+    if hasattr(payload, "model_dump"):  # handle Pydantic v2
+        payload = payload.model_dump()
+    elif hasattr(payload, "dict"):    # handles Pydantic v1
+        payload = payload.dict()
 
     if not isinstance(payload, dict):
         logger.debug("Unable to inject traceparent. Payload is not a dict")

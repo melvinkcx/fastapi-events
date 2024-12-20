@@ -21,7 +21,9 @@ def evaluate_forwardref(type_: ForwardRef, globalns: Any, localns: Any) -> Any:
     else:
         # Even though it is the right signature for python 3.9, mypy complains with
         # `error: Too many arguments for "_evaluate" of "ForwardRef"` hence the cast...
-        return cast(Any, type_)._evaluate(globalns, localns, set())
+        # Python 3.13/3.12.4+ made `recursive_guard` a kwarg, so name it explicitly to avoid:
+        # TypeError: ForwardRef._evaluate() missing 1 required keyword-only argument: 'recursive_guard'
+        return cast(Any, type_)._evaluate(globalns, localns, recursive_guard=set())
 
 
 def get_typed_annotation(
@@ -147,7 +149,7 @@ async def solve_dependencies(
             solved = await call(**sub_values)
         else:
             loop = asyncio.get_event_loop()
-            solved = await loop.run_in_executor(None, functools.partial(call, event, **sub_values))
+            solved = await loop.run_in_executor(None, functools.partial(call, **sub_values))
 
         if sub_dependant.name is not None:
             values[sub_dependant.name] = solved
@@ -160,6 +162,26 @@ class LocalHandler(BaseEventHandler):
         self._registry = {}
 
     def register(self, _func=None, event_name="*"):
+        """
+        Register a handler for an event. The handler will receive a tuple of event name and payload as its only argument.
+
+        ### Args
+
+        :param _func: The function to be registered as a handler.  Typically, you would use `register` as a decorator and omit this argument.
+        :param event_name: The name of the event to be associated with the handler. Use "*", the default value, to match all events.
+
+        ### Examples
+
+        Register a handler as a decorator:
+        ```python
+        from fastapi_events.handlers.local import local_handler
+        from fastapi_events.typing import Event
+
+        @local_handler.register(event_name="my_event")
+        async def my_event_handler(event: Event):
+            event_name, payload = event
+            print(f"Received event {event_name} with payload {payload}")        ```
+        """
         def _wrap(func):
             self._register_handler(event_name, func)
             return func

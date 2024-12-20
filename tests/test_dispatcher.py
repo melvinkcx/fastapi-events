@@ -13,6 +13,7 @@ import fastapi_events.dispatcher as dispatcher_module
 from fastapi_events import BaseEventHandler, handler_store
 from fastapi_events.constants import FASTAPI_EVENTS_DISABLE_DISPATCH_ENV_VAR
 from fastapi_events.dispatcher import dispatch
+from fastapi_events.errors import MultiplePayloadsDetectedDuringDispatch
 from fastapi_events.registry.payload_schema import EventPayloadSchemaRegistry
 from fastapi_events.typing import Event
 
@@ -67,8 +68,12 @@ async def test_suppression_of_events_in_req_res_cycle(
      ({"user_id": uuid.uuid4()}, True),
      ({}, True),
      (None, True)))
+@pytest.mark.parametrize(
+    "payload_schema_dump",
+    (True, False)
+)
 async def test_payload_validation_with_pydantic_in_req_res_cycle(
-    event_payload, should_raise_error, setup_mocks_for_events_in_req_res_cycle
+    event_payload, should_raise_error, payload_schema_dump, setup_mocks_for_events_in_req_res_cycle,
 ):
     """
     Test if event payloads are properly validated when a payload schema is registered.
@@ -87,7 +92,8 @@ async def test_payload_validation_with_pydantic_in_req_res_cycle(
     dispatch_fn = functools.partial(dispatch,
                                     event_name=UserEvents.SIGNED_UP,
                                     payload=event_payload,
-                                    payload_schema_registry=payload_schema)
+                                    payload_schema_registry=payload_schema,
+                                    payload_schema_dump=payload_schema_dump)
 
     if should_raise_error:
         with pytest.raises(pydantic.ValidationError):
@@ -96,6 +102,36 @@ async def test_payload_validation_with_pydantic_in_req_res_cycle(
     else:
         dispatch_fn()
         assert mocks["spy_event_store_ctx_var"].get.called
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload_schema_dump",
+    (True, False)
+)
+async def test_dispatching_with_pydantic_model(
+    payload_schema_dump, setup_mocks_for_events_in_req_res_cycle, mocker
+):
+    payload_schema = EventPayloadSchemaRegistry()
+
+    mocks = setup_mocks_for_events_in_req_res_cycle(disable_dispatch=False)
+    spy__dispatch = mocker.spy(dispatcher_module, "_dispatch")
+
+    @payload_schema.register
+    class UserSignedUpEventSchema(pydantic.BaseModel):
+        __event_name__ = "USER_SIGNED_UP"
+
+        username: str
+
+    event = UserSignedUpEventSchema(username="USER_ABC")
+    expected_payload = {"username": "USER_ABC"} if payload_schema_dump else event
+    dispatch(event, payload_schema_dump=payload_schema_dump)
+
+    assert mocks["spy_event_store_ctx_var"].get.called
+    spy__dispatch.assert_called_with(
+        event_name="USER_SIGNED_UP",
+        payload=expected_payload
+    )
 
 
 @pytest.mark.asyncio
@@ -206,3 +242,35 @@ async def test_otel_support(
 
     spans_created = otel_test_manager.get_finished_spans()
     assert spans_created[0].name == "Event TEST_EVENT dispatched"
+
+
+@pytest.mark.asyncio
+async def test_dispatch_calls(
+    setup_mocks_for_events_in_req_res_cycle
+):
+    """
+    support calling dispatch with a mix of args, kwarg
+    """
+    setup_mocks_for_events_in_req_res_cycle(disable_dispatch=True)
+
+    class SchemaA(pydantic.BaseModel):
+        __event_name__ = "EVENT_A"
+
+        username: str
+
+    # Valid combinations of arguments
+    dispatch(SchemaA(username="USER_ABC"))
+    dispatch("EVENT_A")
+    dispatch("EVENT_A", {"username": "ABC"})
+    dispatch("EVENT_A", payload={"username": "ABC"})
+    dispatch(event_name="EVENT_A", payload={"username": "ABC"})
+
+    # Invalid combinations
+    with pytest.raises(MultiplePayloadsDetectedDuringDispatch):
+        dispatch(SchemaA(username="USER_ABC"),
+                 event_name="XYZ",
+                 payload={"username": "USER_ABC"})
+
+    with pytest.raises(MultiplePayloadsDetectedDuringDispatch):
+        dispatch(SchemaA(username="USER_ABC"),
+                 payload={"username": "USER_ABC"})
